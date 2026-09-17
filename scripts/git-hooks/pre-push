@@ -3,13 +3,15 @@
 set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
 zero=0000000000000000000000000000000000000000
-while read -r local_ref local_sha remote_ref remote_sha; do
+empty_tree="$(git hash-object -t tree /dev/null)"
+while read -r _local_ref local_sha _remote_ref remote_sha; do
   [ "$local_sha" = "$zero" ] && continue
   if [ "$remote_sha" = "$zero" ]; then
-    range="$(git hash-object -t tree /dev/null)..$local_sha"
+    # New remote branch: scan the full history reachable from the pushed commit.
+    node "$root/scripts/privacy/privacy-check.mjs" --range "$empty_tree..$local_sha"
+    bash "$root/scripts/privacy/secret-scan.sh" --range "$local_sha"
   else
-    range="$remote_sha..$local_sha"
+    node "$root/scripts/privacy/privacy-check.mjs" --range "$remote_sha..$local_sha"
+    bash "$root/scripts/privacy/secret-scan.sh" --range "$remote_sha..$local_sha"
   fi
-  node "$root/scripts/privacy/privacy-check.mjs" --range "$range"
-  bash "$root/scripts/privacy/secret-scan.sh" --range "$range"
 done

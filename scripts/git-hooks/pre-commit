@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Blocks commits that contain credentials or private financial data.
+set -euo pipefail
+root="$(git rev-parse --show-toplevel)"
+node "$root/scripts/privacy/privacy-check.mjs" --staged
+bash "$root/scripts/privacy/secret-scan.sh" --staged

@@ -1,0 +1,16 @@
+title = "FinancialOS gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Dependency lockfiles, build output, and synthetic test vectors"
+paths = [
+  '''package-lock\.json''',
+  '''(^|/)node_modules/''',
+  '''(^|/)\.tools/''',
+  '''(^|/)dist/''',
+]
+regexes = [
+  '''synthetic-test-secret-[a-z0-9-]+''',
+]

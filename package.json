@@ -1,0 +1,45 @@
+{
+  "name": "financialos",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Self-hosted personal and business financial command centre",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w packages/contracts -w packages/domain -w packages/security -w packages/db -w packages/integrations -w packages/ui --if-present && npm run build -w apps/web -w apps/api -w apps/worker -w apps/extension --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint --max-warnings=0 .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "playwright test -c tests/e2e/playwright.config.ts",
+    "privacy:check": "node scripts/privacy/privacy-check.mjs --staged",
+    "privacy:check:all": "node scripts/privacy/privacy-check.mjs --all",
+    "secrets:scan": "bash scripts/privacy/secret-scan.sh"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vitest": "5.0.1",
+    "@vitest/coverage-v8": "5.0.1",
+    "eslint": "10.10.0",
+    "@eslint/js": "10.0.1",
+    "typescript-eslint": "8.70.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.12.0",
+    "prettier": "3.9.7",
+    "@playwright/test": "1.63.0",
+    "@axe-core/playwright": "4.13.0",
+    "tsx": "4.23.13",
+    "esbuild": "0.28.2",
+    "@types/node": "22.20.3",
+    "fflate": "0.8.3"
+  }
+}

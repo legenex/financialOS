@@ -1,0 +1,17 @@
+{
+  "name": "@financialos/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "node build.mjs",
+    "package": "node build.mjs --zip"
+  },
+  "dependencies": {
+    "@financialos/contracts": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.3.0"
+  }
+}

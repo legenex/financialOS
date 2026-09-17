@@ -1,0 +1,37 @@
+{
+  "name": "@financialos/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/main.ts",
+    "build": "node build.mjs",
+    "start": "node dist/main.mjs"
+  },
+  "dependencies": {
+    "fastify": "5.12.5",
+    "@fastify/cookie": "11.1.2",
+    "@fastify/static": "10.1.4",
+    "@fastify/helmet": "13.1.1",
+    "@fastify/multipart": "10.1.1",
+    "@fastify/rate-limit": "11.2.0",
+    "@simplewebauthn/server": "14.0.2",
+    "otplib": "13.5.0",
+    "@node-rs/argon2": "2.2.1",
+    "qrcode": "1.5.4",
+    "pino": "10.3.1",
+    "pg-boss": "12.33.0",
+    "zod": "4.6.5",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "decimal.js": "10.6.0",
+    "@financialos/contracts": "0.1.0",
+    "@financialos/domain": "0.1.0",
+    "@financialos/security": "0.1.0",
+    "@financialos/db": "0.1.0",
+    "@financialos/integrations": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/qrcode": "1.5.6"
+  }
+}

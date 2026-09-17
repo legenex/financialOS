@@ -1,0 +1,62 @@
+# Dependencies and toolchains
+node_modules/
+.tools/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+out/
+coverage/
+*.tsbuildinfo
+.vite/
+.turbo/
+apps/extension/release/
+
+# Test output (may contain screenshots, traces, or database state)
+test-results/
+playwright-report/
+blob-report/
+tests/e2e/.auth/
+tests/**/artifacts/
+*.trace.zip
+
+# Environment and secrets: runtime configuration lives outside the repository
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+bootstrap-secret*
+*.secret
+
+# Financial data must never enter the repository
+*.dump
+*.sql.gz
+*.backup
+*.enc
+backups/
+private/
+runtime/
+real-data/
+statements/
+*.ofx
+*.qfx
+!tests/fixtures/**/*.ofx
+!tests/fixtures/**/*.qfx
+!packages/**/fixtures/**/*.ofx
+!packages/**/fixtures/**/*.qfx
+
+# Editor and tool state
+.kilo/
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.log
+npm-debug.log*
+.claude/settings.local.json

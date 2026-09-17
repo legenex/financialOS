@@ -1,0 +1,28 @@
+{
+  "emailDomains": ["example.com", "example.org", "example.net", "example.test", "financialos.invalid", "anthropic.com"],
+  "ethAddresses": [
+    "0x0000000000000000000000000000000000000000",
+    "0x000000000000000000000000000000000000dead",
+    "0x1111111111111111111111111111111111111111",
+    "0x2222222222222222222222222222222222222222",
+    "0x3333333333333333333333333333333333333333"
+  ],
+  "btcAddresses": [
+    "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4",
+    "bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3",
+    "1bvbmsegjt5slb1bnkrwbwsvkknbrquyqz",
+    "3j98t1wpez73cnmqviecrnyiwrnqrhwnly",
+    "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
+  ],
+  "ibans": ["GB82WEST12345698765432", "DE89370400440532013000"],
+  "cardNumbers": ["4111111111111111", "5555555555554444", "4242424242424242"],
+  "binaryAllowedPrefixes": [
+    "packages/ui/assets/",
+    "apps/web/public/",
+    "apps/extension/public/",
+    "tests/fixtures/",
+    "packages/integrations/fixtures/",
+    "docs/assets/"
+  ],
+  "skipFiles": ["package-lock.json", "scripts/privacy/allowlist.json"]
+}

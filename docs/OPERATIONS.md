@@ -11,7 +11,7 @@ Related documents: [ARCHITECTURE.md](ARCHITECTURE.md) (runtime topology), [SECUR
 
 | Compose project | Purpose | App port (host) | Data |
 |---|---|---|---|
-| `financialos` | production | `127.0.0.1:3180` | volumes `financialos_pgdata`, `financialos_documents` (external) and `$FOS_RUNTIME_DIR/backups` |
+| `financialos` | production | `127.0.0.1:3180`, plus `$FOS_TAILSCALE_IP:3180` when the direct-Tailscale-IP access method (section 10) is configured | volumes `financialos_pgdata`, `financialos_documents` (external) and `$FOS_RUNTIME_DIR/backups` |
 | `financialos-dev` | synthetic demo data | `127.0.0.1:3190` | volumes `financialos_dev_*`, secrets in `$FOS_RUNTIME_DIR/dev/` |
 | `financialos-e2e` | disposable end-to-end tests | `127.0.0.1:3181` | tmpfs only, secrets in a temporary directory |
 | `financialos-test` | integration-test database (`deploy/scripts/test-db.sh`) | `127.0.0.1:55432` (database) | tmpfs |
@@ -22,7 +22,8 @@ Each production stack has four services built from one image (`financialos:<tag>
 * `db`: PostgreSQL 17. It sits on the `internal` network only (`internal: true`, no published port).
 * `migrate`: a one-shot job. It applies migrations as `fos_migrator`, then loads the private owner bootstrap file
   if one is present. The load is idempotent.
-* `app`: the Fastify API that also serves the SPA. It is published only on `127.0.0.1`. It sits on the `internal`
+* `app`: the Fastify API that also serves the SPA. It is published on `127.0.0.1` and, optionally, the host's
+  Tailscale address (never `0.0.0.0` or the LAN; see section 10). It sits on the `internal`
   network plus an `egress` bridge for provider APIs.
 * `worker`: runs background jobs, scheduled backups and retention, on the `internal` and `egress` networks.
 
@@ -154,7 +155,8 @@ To replace an unused secret before setup, run `init-runtime.sh --rotate-bootstra
   * `/healthz` and `/readyz` return 200.
   * `/` returns HTML with `Content-Security-Policy`, `Cache-Control: no-store` and `nosniff`.
   * `/api/today` returns 401 without a session.
-  * The only published port is `127.0.0.1:3180->3000` on the app.
+  * The only published port(s) are `127.0.0.1:3180->3000` on the app, plus `$FOS_TAILSCALE_IP:3180->3000` when
+    the direct-Tailscale-IP access method (section 10) is configured -- never `0.0.0.0`.
 * **Rollback.** Run `rollback.sh [tag]`. It uses the previous tag by default and asks for confirmation (use
   `--yes` in scripts).
 * **Migrations are forward-only.** A rollback changes only the application image. If the older release cannot
@@ -257,8 +259,9 @@ The scripts never run a modifying `tailscale serve` command, never reset the Ser
 enable Funnel. `tailscale-route.sh status` fails if Funnel is ever enabled for the FinancialOS handler.
 `--bg` routes persist across reboots.
 
-If HTTPS certificates cannot be enabled, keep the app on loopback and use the SSH tunnel below. Never expose
-plain HTTP on the tailnet, and never weaken TLS.
+If HTTPS certificates cannot be enabled (for example, no sudo / not the tailnet's Tailscale operator on a
+shared host), use the SSH tunnel or the direct Tailscale IP method below instead. Never bind the app to
+`0.0.0.0` or the LAN, and never weaken TLS on a route that has it.
 
 ### SSH tunnel (alternative)
 
@@ -269,7 +272,41 @@ ssh -L 3180:127.0.0.1:3180 <host>
 
 The configuration must list `http://localhost:3180` as an allowed origin (`--extra-origin`). Password + TOTP
 works through the tunnel. A passkey enrolled for the HTTPS origin does not, because WebAuthn binds it to that
-host name.
+host name. This keeps the app's own origin at loopback; nothing below applies.
+
+### Direct Tailscale IP, plain HTTP (alternative, no sudo required)
+
+Use this when Tailscale Serve is unavailable (no sudo, not the tailnet operator) and an SSH tunnel is not
+practical for the client. The app is published directly on the host's Tailscale address, over plain HTTP: the
+tailnet's own WireGuard tunnel between devices is the encryption layer, in place of TLS terminated at the app.
+
+1. Publish the port on the Tailscale interface as well as loopback. `FOS_TAILSCALE_IP` is deployment-specific
+   and lives only in `$FOS_RUNTIME_DIR/network.env` (never a tracked file):
+   ```bash
+   fos_env_set "$FOS_RUNTIME_DIR/network.env" FOS_TAILSCALE_IP <the host's tailnet IP>
+   ```
+   `deploy/compose/prod.compose.yml` then publishes the app port on both `127.0.0.1` and that address; never
+   on `0.0.0.0`. Redeploy or restart the `app` service to pick up the new binding.
+2. Set the origin and restart the app. `apps/api/src/config.ts` accepts plain `http://` for loopback origins and, as the one other exception, hosts in Tailscale's own CGNAT range (`100.64.0.0/10`, privacy-check: allow-generic) -- nothing else:
+   ```bash
+   deploy/scripts/write-config.sh --force --origin http://<tailnet-ip>:3180 --extra-origin http://localhost:3180
+   deploy/scripts/start.sh --restart app
+   ```
+   Loopback stays allowed for local/SSH-tunnel access; nothing about CSRF, `Origin` checking, `SameSite`,
+   authentication, or the ten-minute absolute session lifetime changes.
+3. Verify: `deploy/scripts/health.sh` checks `/healthz` and `/readyz` on both addresses when the target is
+   `prod`, and confirms only those two publish the app port.
+
+Consequences, all inherent to plain HTTP rather than to this app's implementation:
+
+* The session cookie drops the `Secure` attribute and the `__Host-` prefix (browsers refuse `__Host-` cookies
+  over plain HTTP); it becomes `fos_session` instead of `__Host-fos_session`. `HttpOnly` and `SameSite=Strict`
+  are unchanged, and the cookie is still tied to the exact origin.
+* WebAuthn/passkeys require a secure context (HTTPS or `localhost`) and are unavailable at a plain-HTTP
+  Tailscale-IP origin. Password + TOTP/recovery login is unaffected. Passkeys become available again once
+  Tailscale Serve HTTPS or another TLS-terminated route is configured for this host.
+* Anyone who can reach the Tailscale IP on the tailnet (per its ACLs) can reach the login page; this is no
+  different from what Tailscale Serve HTTPS or the SSH tunnel already allow to devices with tailnet access.
 
 ### Same-host trust boundary
 
@@ -297,7 +334,8 @@ The host also runs other workloads, such as GPU inference. FinancialOS tooling f
 * It only creates, changes or removes Docker resources whose names start with `financialos`. It uses no fixed
   container names, never mounts the Docker socket, and runs no privileged containers.
 * It never runs `docker system|volume|network prune`, `docker image prune -a`, or a Docker daemon restart.
-* It never binds to `0.0.0.0` or a tailnet address. Only `127.0.0.1` ports are published.
+* It never binds to `0.0.0.0` or the LAN. Only `127.0.0.1` and, when the "Direct Tailscale IP" method in
+  section 10 is in use, the host's own Tailscale address are published, and only for the app port.
 * It builds and tests at low priority behind a shared lock (`scripts/dev/with-lock.sh`), with memory checks and
   bounded Node heaps.
 * It changes Tailscale only through the owner's explicit additive command.

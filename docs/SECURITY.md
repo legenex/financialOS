@@ -14,8 +14,12 @@ particular release is recorded in `docs/VERIFICATION.md`.
 
 ## Trust boundaries
 
-1. **Browser ↔ private HTTPS route ↔ app.** TLS is terminated by the private route in front of the app
-   (for example, Tailscale Serve). The app listens on loopback only.
+1. **Browser ↔ private route ↔ app.** The app is published only on loopback and, optionally, the host's
+   Tailscale address (never `0.0.0.0` or the LAN) -- see `docs/OPERATIONS.md` section 10 for the access methods
+   and their trade-offs. TLS is preferably terminated by a private route in front of the app (for example,
+   Tailscale Serve); a Tailscale-address origin without TLS relies instead on the tailnet's own WireGuard
+   encryption between devices, keeps sessions to a non-`Secure`, `__Host-`-unprefixed cookie, and cannot use
+   WebAuthn/passkeys (they require a secure context).
 2. **App ↔ database.** The database is reachable only on an internal Docker network. There is no published port.
 3. **Worker ↔ provider APIs.** Outbound traffic goes through the SSRF-guarded client.
 4. **Extension ↔ app.** A device credential grants access to one sanitized summary endpoint.

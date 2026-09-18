@@ -9,7 +9,9 @@
 #       [--oauth-base <origin>] [--log-level <level>] [--rp-name <name>] [--body-limit-bytes <n>]
 #
 #   --profile prod  (default) writes $FOS_RUNTIME_DIR/config/app-config.json; --origin is required
-#                   the first time. Plain http origins are accepted only for loopback (SSH tunnel access).
+#                   the first time. Plain http origins are accepted only for loopback (SSH tunnel access) or a
+#                   Tailscale address (100.64.0.0/10 CGNAT range; privacy-check: allow-generic) reached only
+#                   through the encrypted tailnet.
 #   --profile dev   writes $FOS_RUNTIME_DIR/dev/config/app-config.json; default origin http://localhost:<dev port>
 #   --profile e2e   requires --out; default origin http://localhost:<e2e port>
 #   --origin        canonical origin, exactly scheme://host[:port] (for example https://finance.example.test:8443)
@@ -108,9 +110,21 @@ out = env["FOS_WC_OUT"]
 environment = env["FOS_WC_ENV"]
 errors = []
 
+# Tailscale's own address space: reachable only through the encrypted WireGuard tunnel between tailnet
+# devices, so plain HTTP there gets the same practical protection as loopback. Mirrors
+# apps/api/src/config.ts's isTailscaleHost -- keep both in sync.
+TAILSCALE_CGNAT = ipaddress.ip_network("100.64.0.0/10")  # privacy-check: allow-generic
+
 
 def lines(name):
     return [v for v in env.get(name, "").split("\n") if v]
+
+
+def is_tailscale_host(host):
+    try:
+        return ipaddress.ip_address(host) in TAILSCALE_CGNAT
+    except ValueError:
+        return False
 
 
 def check_origin(value, label):
@@ -128,8 +142,8 @@ def check_origin(value, label):
         errors.append(f"{label}: credentials are not allowed in an origin")
     if value != value.lower():
         errors.append(f"{label}: use lower case: {value}")
-    if parts.scheme == "http" and host not in ("localhost", "127.0.0.1", "::1"):
-        errors.append(f"{label}: plain http is only allowed for loopback origins: {value}")
+    if parts.scheme == "http" and host not in ("localhost", "127.0.0.1", "::1") and not is_tailscale_host(host):
+        errors.append(f"{label}: plain http is only allowed for loopback or Tailscale (100.64.0.0/10) origins: {value}")  # privacy-check: allow-generic
     try:
         parts.port
     except ValueError:

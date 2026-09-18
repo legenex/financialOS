@@ -59,7 +59,8 @@ export FOS_IMAGE="$target"
 if fos_prod_compose up -d --wait --wait-timeout "$timeout" db >&2 &&
   fos_prod_compose up -d --no-deps --wait --wait-timeout "$timeout" app worker >&2 &&
   fos_smoke_check "http://127.0.0.1:$FOS_APP_PORT" >&2 &&
-  fos_check_published_ports "$FOS_PROD_PROJECT" "$FOS_APP_PORT" >&2; then
+  fos_smoke_check "http://$FOS_TAILSCALE_IP:$FOS_APP_PORT" >&2 &&
+  fos_check_published_ports "$FOS_PROD_PROJECT" "$FOS_APP_PORT" "$FOS_TAILSCALE_IP" >&2; then
   fos_env_set "$FOS_RELEASE_ENV" FOS_PREVIOUS_IMAGE "${current:-}"
   fos_env_set "$FOS_RELEASE_ENV" FOS_IMAGE "$target"
   fos_write_release_status "$target" "$current" "rolled_back"

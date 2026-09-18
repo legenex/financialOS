@@ -22,6 +22,9 @@ FOS_APP_PORT="${FOS_APP_PORT:-3180}"
 FOS_DEV_PORT="${FOS_DEV_PORT:-3190}"
 FOS_E2E_PORT="${FOS_E2E_PORT:-3181}"
 FOS_TS_HTTPS_PORT="${FOS_TS_HTTPS_PORT:-8443}"
+# The host's Tailscale IP (kept out of tracked files; see $FOS_RUNTIME_DIR/network.env). Only the prod
+# compose file requires it (it publishes the app port there in addition to 127.0.0.1); dev/e2e never read it.
+FOS_TAILSCALE_IP="${FOS_TAILSCALE_IP:-}"
 export FOS_RUNTIME_DIR
 
 # Containers run as this uid; secret files are shared with it through the group of the runtime directory.
@@ -67,7 +70,7 @@ fos_secrets_gid() {
 
 fos_export_compose_env() {
   FOS_SECRETS_GID="$(fos_secrets_gid)"
-  export FOS_SECRETS_GID FOS_RUNTIME_DIR FOS_APP_PORT FOS_DEV_PORT FOS_E2E_PORT
+  export FOS_SECRETS_GID FOS_RUNTIME_DIR FOS_APP_PORT FOS_DEV_PORT FOS_E2E_PORT FOS_TAILSCALE_IP
 }
 
 # Reads KEY from an env-style file without sourcing it. Prints an empty string when absent.
@@ -88,6 +91,13 @@ fos_env_set() {
   chmod 0640 "$tmp"
   mv -f "$tmp" "$file"
 }
+
+# FOS_TAILSCALE_IP is deployment-specific and never lives in a tracked file; fall back to the private
+# runtime directory's network.env (created once with: deploy/scripts/lib/common.sh sourced, then
+# `fos_env_set "$FOS_RUNTIME_DIR/network.env" FOS_TAILSCALE_IP <ip>`).
+if [ -z "$FOS_TAILSCALE_IP" ]; then
+  FOS_TAILSCALE_IP="$(fos_env_get "$FOS_RUNTIME_DIR/network.env" FOS_TAILSCALE_IP)"
+fi
 
 FOS_RELEASE_ENV="$FOS_RUNTIME_DIR/release.env"
 
@@ -166,10 +176,14 @@ fos_smoke_check() {
   [ "$failures" -eq 0 ]
 }
 
-# Verifies that a compose project publishes nothing except 127.0.0.1:<expected_port> -> 3000 on its app service.
-# Exposed-but-unpublished ports (for example "5432/tcp") are fine.
+# Verifies that a compose project publishes nothing except 127.0.0.1:<expected_port> -> 3000 (and, when
+# extra_ip is given -- production only -- also extra_ip:<expected_port> -> 3000) on its app service.
+# Exposed-but-unpublished ports (for example "5432/tcp") are fine. Never accepts 0.0.0.0 or any other address.
 fos_check_published_ports() {
-  local project="$1" expected_port="$2" name ports entry bad=0
+  local project="$1" expected_port="$2" extra_ip="${3:-}" name ports entry bad=0
+  local allowed_loopback="127.0.0.1:${expected_port}->3000/tcp"
+  local allowed_extra=""
+  [ -n "$extra_ip" ] && allowed_extra="${extra_ip}:${expected_port}->3000/tcp"
   while IFS='|' read -r name ports; do
     [ -n "$ports" ] || continue
     IFS=',' read -ra entries <<<"$ports"
@@ -179,10 +193,10 @@ fos_check_published_ports() {
         *"->"*) ;;
         *) continue ;;
       esac
-      if [ "$entry" = "127.0.0.1:${expected_port}->3000/tcp" ] && [[ "$name" == *-app-* ]]; then
+      if [[ "$name" == *-app-* ]] && { [ "$entry" = "$allowed_loopback" ] || { [ -n "$allowed_extra" ] && [ "$entry" = "$allowed_extra" ]; }; }; then
         echo "ok    $name publishes $entry"
       else
-        echo "FAIL  $name publishes $entry (only 127.0.0.1:${expected_port}->3000/tcp on the app is allowed)"
+        echo "FAIL  $name publishes $entry (only ${allowed_loopback}${allowed_extra:+ and $allowed_extra} on the app is allowed)"
         bad=1
       fi
     done

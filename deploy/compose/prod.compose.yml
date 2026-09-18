@@ -4,12 +4,15 @@
 #   FOS_IMAGE         explicit image tag (recorded in $FOS_RUNTIME_DIR/release.env; never "latest")
 #   FOS_RUNTIME_DIR   private runtime directory (config, secrets, backups)
 #   FOS_SECRETS_GID   group that may read the 0640 secret/config files (group of $FOS_RUNTIME_DIR/secrets)
-#   FOS_APP_PORT      loopback port for the app (default 3180)
+#   FOS_APP_PORT      app port, published on loopback and (see below) the Tailscale interface (default 3180)
+#   FOS_TAILSCALE_IP  the host's Tailscale IP; the app port is also published there, over plain HTTP, since
+#                      that address is reachable only through the encrypted WireGuard tunnel (see
+#                      docs/OPERATIONS.md section 10, "Direct Tailscale IP")
 #   FOS_PGDATA_VOLUME / FOS_DOCUMENTS_VOLUME   data volume names (defaults financialos_pgdata/_documents)
 #
-# Only the app port is published, and only on 127.0.0.1. PostgreSQL is reachable on the internal network only.
-# Volumes are external so that no Compose command (including "down -v") can delete production data;
-# deploy.sh creates them once.
+# Only the app port is published, on 127.0.0.1 and FOS_TAILSCALE_IP -- never on 0.0.0.0 or any other address.
+# PostgreSQL is reachable on the internal network only. Volumes are external so that no Compose command
+# (including "down -v") can delete production data; deploy.sh creates them once.
 name: financialos
 
 x-logging: &logging
@@ -173,6 +176,7 @@ services:
       NODE_OPTIONS: --max-old-space-size=320
     ports:
       - "127.0.0.1:${FOS_APP_PORT:-3180}:3000"
+      - "${FOS_TAILSCALE_IP:?FOS_TAILSCALE_IP is required}:${FOS_APP_PORT:-3180}:3000"
     secrets:
       - source: db-app-password
         target: db-password

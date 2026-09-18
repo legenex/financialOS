@@ -5,8 +5,9 @@
 #   deploy/scripts/health.sh [--project prod|dev|e2e] [--quiet]
 #
 # Checks: container state and Docker health for db, app and worker; GET /healthz and /readyz on the loopback
-# port; that nothing but 127.0.0.1:<port> is published. For production it also reports (as warnings) the age of
-# the newest backup, the last restore verification, disk space and the private route status.
+# port (and, for production, also on the Tailscale IP); that nothing but 127.0.0.1:<port> (and, for production,
+# FOS_TAILSCALE_IP:<port>) is published. For production it also reports (as warnings) the age of the newest
+# backup, the last restore verification, disk space and the private route status.
 set -euo pipefail
 FOS_SCRIPT_NAME=health
 # shellcheck source=deploy/scripts/lib/common.sh
@@ -52,7 +53,21 @@ for path in healthz readyz; do
   if [ "$code" = 200 ]; then out "ok    GET /$path -> 200"; else out "FAIL  GET /$path -> ${code:-no response}"; failures=$((failures + 1)); fi
 done
 
-if ports_report="$(fos_check_published_ports "$project" "$port")"; then
+extra_ip=""
+if [ "$target" = prod ]; then
+  extra_ip="$FOS_TAILSCALE_IP"
+  if [ -z "$extra_ip" ]; then
+    out "FAIL  FOS_TAILSCALE_IP is not set (see \$FOS_RUNTIME_DIR/network.env)"
+    failures=$((failures + 1))
+  else
+    for path in healthz readyz; do
+      code="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 5 "http://$extra_ip:$port/$path" 2>/dev/null || true)"
+      if [ "$code" = 200 ]; then out "ok    GET http://$extra_ip:$port/$path -> 200"; else out "FAIL  GET http://$extra_ip:$port/$path -> ${code:-no response}"; failures=$((failures + 1)); fi
+    done
+  fi
+fi
+
+if ports_report="$(fos_check_published_ports "$project" "$port" "$extra_ip")"; then
   [ "$quiet" = 1 ] || [ -z "$ports_report" ] || printf '%s\n' "$ports_report"
 else
   printf '%s\n' "$ports_report"

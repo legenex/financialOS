@@ -11,7 +11,8 @@
 #   4. start the database, run the one-shot migrate service (migrations + idempotent private bootstrap) with the
 #      new image, then recreate app and worker with the new image;
 #   5. wait for healthy containers and run smoke checks (healthz, readyz, index.html with CSP and no-store,
-#      /api/today -> 401 without a session, only 127.0.0.1:$FOS_APP_PORT published);
+#      /api/today -> 401 without a session, run against both 127.0.0.1:$FOS_APP_PORT and
+#      $FOS_TAILSCALE_IP:$FOS_APP_PORT; confirm only those two publish the app port);
 #   6. on failure, automatically roll app and worker back to the previous image (migrations are forward-only:
 #      see docs/OPERATIONS.md) unless --no-rollback;
 #   7. record the result in $FOS_RUNTIME_DIR/release.env, config/release.json and notes/releases.log.
@@ -90,7 +91,9 @@ fi
 smoke_and_ports() {
   local ok=0
   fos_smoke_check "http://127.0.0.1:$FOS_APP_PORT" || ok=1
-  fos_check_published_ports "$FOS_PROD_PROJECT" "$FOS_APP_PORT" || ok=1
+  [ -n "$FOS_TAILSCALE_IP" ] || fos_die "FOS_TAILSCALE_IP is not set (see $FOS_RUNTIME_DIR/network.env)"
+  fos_smoke_check "http://$FOS_TAILSCALE_IP:$FOS_APP_PORT" || ok=1
+  fos_check_published_ports "$FOS_PROD_PROJECT" "$FOS_APP_PORT" "$FOS_TAILSCALE_IP" || ok=1
   return "$ok"
 }
 
@@ -137,5 +140,5 @@ fos_env_set "$FOS_RELEASE_ENV" FOS_PGDATA_VOLUME "$pgdata_volume"
 fos_env_set "$FOS_RELEASE_ENV" FOS_DOCUMENTS_VOLUME "$documents_volume"
 fos_write_release_status "$image" "$previous" "deployed"
 fos_append_release_log "deploy-ok image=$image previous=${previous:-none}"
-fos_log "deployed $image; app on http://127.0.0.1:$FOS_APP_PORT (loopback only)"
+fos_log "deployed $image; app on http://127.0.0.1:$FOS_APP_PORT and http://$FOS_TAILSCALE_IP:$FOS_APP_PORT (tailnet only, not 0.0.0.0)"
 printf '%s\n' "$image"

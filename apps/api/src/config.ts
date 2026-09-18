@@ -1,8 +1,24 @@
 import { readFileSync } from 'node:fs';
 import { isIP } from 'node:net';
 import { z } from 'zod';
+import { classifyAddress } from '@financialos/security/net';
 
 const isLoopbackHost = (hostname: string) => hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+
+/**
+ * Tailscale's own address space (100.64.0.0/10, RFC 6598 carrier-grade NAT; privacy-check: allow-generic --
+ * documented CGNAT range, not a real tailnet IP) is reachable only through the
+ * encrypted WireGuard tunnel between tailnet devices, so plain HTTP there gets the same practical protection
+ * as loopback. This is the ONE narrow exception to "plain HTTP is only allowed for loopback origins" below;
+ * it does not extend to any other non-loopback address.
+ */
+const isTailscaleHost = (hostname: string): boolean => {
+  try {
+    return classifyAddress(hostname).reason === 'carrier-grade-nat';
+  } catch {
+    return false;
+  }
+};
 
 /** An exact origin (`scheme://host[:port]`) with no path, query, or trailing slash. */
 export const OriginString = z.string().refine((value) => {
@@ -63,8 +79,12 @@ export const RuntimeConfigSchema = z
     }
     for (const [i, origin] of cfg.allowedOrigins.entries()) {
       const url = new URL(origin);
-      if (url.protocol === 'http:' && !isLoopbackHost(url.hostname)) {
-        ctx.addIssue({ code: 'custom', path: ['allowedOrigins', i], message: 'Plain HTTP is only allowed for loopback origins' });
+      if (url.protocol === 'http:' && !isLoopbackHost(url.hostname) && !isTailscaleHost(url.hostname)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['allowedOrigins', i],
+          message: 'Plain HTTP is only allowed for loopback origins or Tailscale (100.64.0.0/10) origins', // privacy-check: allow-generic
+        });
       }
     }
     let dbUrl: URL | null = null;

@@ -74,6 +74,22 @@ const GENERIC_RULES = [
   { id: 'mercury-token', re: /secret-token:mercury_production_[A-Za-z0-9_]+/i },
 ];
 
+/**
+ * Source files legitimately contain the occasional NUL byte (for example as a key separator in a
+ * template literal), so a single NUL is not enough to call a file binary. Decide on the share of
+ * control bytes instead, which stays reliable for real binaries.
+ */
+function looksBinary(buf) {
+  const sample = buf.subarray(0, 8000);
+  if (sample.length === 0) return false;
+  let control = 0;
+  for (const byte of sample) {
+    if (byte === 9 || byte === 10 || byte === 13) continue;
+    if (byte < 32 || byte === 127) control += 1;
+  }
+  return control / sample.length > 0.01;
+}
+
 function allowedEmail(m) {
   const lower = m.toLowerCase();
   const domain = lower.split('@')[1] ?? '';
@@ -161,7 +177,7 @@ for (const entry of listFiles()) {
     continue;
   }
   const buf = entry.read();
-  const isBinary = BINARY_EXTENSIONS.has(ext) || buf.subarray(0, 8000).includes(0);
+  const isBinary = BINARY_EXTENSIONS.has(ext) || looksBinary(buf);
   if (isBinary) {
     if (!entry.external && !BINARY_ALLOWED_PREFIXES.some((p) => file.startsWith(p))) {
       add(file, 0, 'binary-outside-approved-asset-folders');

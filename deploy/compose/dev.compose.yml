@@ -1,0 +1,279 @@
+# FinancialOS development/demo stack (Compose project "financialos-dev") with SYNTHETIC data only.
+#
+# Started by deploy/scripts/dev-up.sh, which generates dedicated dev secrets and config under
+# ${FOS_RUNTIME_DIR}/dev/ (never the production ones) and exports FOS_IMAGE, FOS_RUNTIME_DIR, FOS_SECRETS_GID.
+# App: http://127.0.0.1:${FOS_DEV_PORT:-3190}. The database is not published. The private owner bootstrap file is
+# never mounted here.
+name: financialos-dev
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-app-hardening: &app-hardening
+  image: ${FOS_IMAGE:?FOS_IMAGE must name an explicit image tag}
+  user: "10001:10001"
+  group_add:
+    - "${FOS_SECRETS_GID:?FOS_SECRETS_GID is required}"
+  read_only: true
+  init: true
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  logging: *logging
+
+x-app-env: &app-env
+  FOS_ENVIRONMENT: development
+  FOS_CONFIG_FILE: /run/fos/config/app-config.json
+  FOS_OPS_STATUS_DIR: /run/fos/config
+  FOS_KEYRING_FILE: /run/secrets/keyring.json
+  FOS_DB_PASSWORD_FILE: /run/secrets/db-password
+  FOS_SECRET_FILES_GROUP_READABLE: "1"
+  FOS_DOCUMENTS_DIR: /data/documents
+  TZ: UTC
+
+services:
+  db:
+    image: ${FOS_POSTGRES_IMAGE:-postgres:17-bookworm}
+    user: "999:999"
+    group_add:
+      - "${FOS_SECRETS_GID}"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/db-superuser-password
+      POSTGRES_INITDB_ARGS: "--auth-local=peer --auth-host=scram-sha-256"
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      FOS_DB_NAME: financialos
+      TZ: UTC
+    command:
+      - postgres
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - max_connections=40
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - log_statement=none
+      - -c
+      - log_min_error_statement=panic
+      - -c
+      - log_connections=off
+      - -c
+      - timezone=UTC
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../db/init:/docker-entrypoint-initdb.d:ro
+    tmpfs:
+      - /var/run/postgresql:size=1m,mode=1777
+      - /tmp:size=32m,mode=1777
+    secrets:
+      - db-superuser-password
+      - db-migrator-password
+      - db-app-password
+      - db-worker-password
+      - db-backup-password
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    shm_size: 64m
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "5432", "-U", "postgres", "-d", "postgres", "-q"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks: [internal]
+    restart: unless-stopped
+    logging: *logging
+
+  migrate:
+    <<: *app-hardening
+    command: ["node", "apps/worker/dist/cli.mjs", "migrate"]
+    environment:
+      <<: *app-env
+      FOS_DATABASE_ROLE: migrator
+      FOS_DATABASE_URL: postgres://fos_migrator@db:5432/financialos
+      FOS_DATABASE_URL_MIGRATOR: postgres://fos_migrator@db:5432/financialos
+      FOS_DB_ROLE_APP: fos_app
+      FOS_DB_ROLE_WORKER: fos_worker
+      FOS_DB_ROLE_BACKUP: fos_backup
+    secrets:
+      - source: db-migrator-password
+        target: db-password
+      - source: keyring
+        target: keyring.json
+    volumes:
+      - ${FOS_RUNTIME_DIR:?FOS_RUNTIME_DIR is required}/dev/config:/run/fos/config:ro
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    mem_limit: 512m
+    cpus: 1.0
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal]
+    restart: "no"
+
+  seed:
+    <<: *app-hardening
+    command: ["node", "apps/worker/dist/cli.mjs", "seed-demo"]
+    environment:
+      <<: *app-env
+      FOS_DATABASE_ROLE: migrator
+      FOS_DATABASE_URL: postgres://fos_migrator@db:5432/financialos
+      FOS_DATABASE_URL_MIGRATOR: postgres://fos_migrator@db:5432/financialos
+      FOS_DB_ROLE_APP: fos_app
+      FOS_DB_ROLE_WORKER: fos_worker
+      FOS_DB_ROLE_BACKUP: fos_backup
+    secrets:
+      - source: db-migrator-password
+        target: db-password
+      - source: keyring
+        target: keyring.json
+    volumes:
+      - ${FOS_RUNTIME_DIR}/dev/config:/run/fos/config:ro
+      - documents:/data/documents
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    mem_limit: 512m
+    cpus: 1.0
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [internal]
+    restart: "no"
+
+  app:
+    <<: *app-hardening
+    command: ["node", "apps/api/dist/main.mjs"]
+    environment:
+      <<: *app-env
+      FOS_DATABASE_ROLE: app
+      FOS_DATABASE_URL: postgres://fos_app@db:5432/financialos
+      FOS_SESSION_PEPPER_FILE: /run/secrets/session-pepper
+      FOS_BOOTSTRAP_HASH_FILE: /run/secrets/bootstrap-secret-hash
+      FOS_HOST: 0.0.0.0
+      FOS_PORT: "3000"
+      NODE_OPTIONS: --max-old-space-size=320
+    ports:
+      - "127.0.0.1:${FOS_DEV_PORT:-3190}:3000"
+    secrets:
+      - source: db-app-password
+        target: db-password
+      - source: keyring
+        target: keyring.json
+      - source: session-pepper
+        target: session-pepper
+      - source: bootstrap-secret-hash
+        target: bootstrap-secret-hash
+    volumes:
+      - ${FOS_RUNTIME_DIR}/dev/config:/run/fos/config:ro
+      - documents:/data/documents
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 256
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/healthz',{signal:AbortSignal.timeout(4000)}).then((r)=>process.exit(r.ok?0:1),()=>process.exit(1))"
+      interval: 15s
+      timeout: 6s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    networks: [internal, egress]
+    restart: unless-stopped
+
+  worker:
+    <<: *app-hardening
+    command: ["node", "apps/worker/dist/main.mjs"]
+    environment:
+      <<: *app-env
+      FOS_DATABASE_ROLE: worker
+      FOS_DATABASE_URL: postgres://fos_worker@db:5432/financialos
+      FOS_BACKUP_DIR: /data/backups
+      FOS_BACKUP_KEY_FILE: /run/secrets/backup-key
+      FOS_BACKUP_DB_USER: fos_backup
+      FOS_BACKUP_DB_PASSWORD_FILE: /run/secrets/db-backup-password
+      NODE_OPTIONS: --max-old-space-size=448
+    secrets:
+      - source: db-worker-password
+        target: db-password
+      - source: db-backup-password
+        target: db-backup-password
+      - source: keyring
+        target: keyring.json
+      - source: backup-key
+        target: backup-key
+    volumes:
+      - ${FOS_RUNTIME_DIR}/dev/config:/run/fos/config:ro
+      - documents:/data/documents
+      - backups:/data/backups
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    mem_limit: 768m
+    memswap_limit: 768m
+    cpus: 1.0
+    pids_limit: 256
+    healthcheck:
+      test: ["CMD", "node", "apps/worker/dist/cli.mjs", "health"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    networks: [internal, egress]
+    restart: unless-stopped
+
+networks:
+  internal:
+    internal: true
+  egress: {}
+
+volumes:
+  pgdata:
+    name: financialos_dev_pgdata
+  documents:
+    name: financialos_dev_documents
+  backups:
+    name: financialos_dev_backups
+
+secrets:
+  db-superuser-password:
+    file: ${FOS_RUNTIME_DIR}/dev/secrets/db-superuser-password
+  db-migrator-password:
+    file: ${FOS_RUNTIME_DIR}/dev/secrets/db-migrator-password
+  db-app-password:
+    file: ${FOS_RUNTIME_DIR}/dev/secrets/db-app-password
+  db-worker-password:
+    file: ${FOS_RUNTIME_DIR}/dev/secrets/db-worker-password
+  db-backup-password:
+    file: ${FOS_RUNTIME_DIR}/dev/secrets/db-backup-password
+  keyring:
+    file: ${FOS_RUNTIME_DIR}/dev/secrets/keyring.json
+  session-pepper:
+    file: ${FOS_RUNTIME_DIR}/dev/secrets/session-pepper
+  bootstrap-secret-hash:
+    file: ${FOS_RUNTIME_DIR}/dev/secrets/bootstrap-secret.sha256
+  backup-key:
+    file: ${FOS_RUNTIME_DIR}/dev/secrets/backup-key

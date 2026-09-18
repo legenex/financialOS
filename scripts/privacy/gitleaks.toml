@@ -4,12 +4,16 @@ title = "FinancialOS gitleaks configuration"
 useDefault = true
 
 [allowlist]
-description = "Dependency lockfiles, build output, and synthetic test vectors"
+description = "Dependency lockfiles, vendored tools, and public keys that are meant to be published"
 paths = [
   '''package-lock\.json''',
   '''(^|/)node_modules/''',
   '''(^|/)\.tools/''',
-  '''(^|/)dist/''',
+  # The browser extension manifest carries the PUBLIC half of the signing key. Chrome derives the
+  # extension id from it, so it is published by design. The private key never leaves the host's
+  # runtime directory.
+  '''apps/extension/manifest\.template\.json''',
+  '''(^|/)manifest\.json''',
 ]
 regexes = [
   '''synthetic-test-secret-[a-z0-9-]+''',

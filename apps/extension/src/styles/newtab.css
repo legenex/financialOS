@@ -1,0 +1,792 @@
+/*
+ * New-tab glance.
+ *
+ * Layout intent: one calm column of information. A greeting sets the tone, a grid of tiles carries
+ * the glance, and a single footer row holds freshness and the way into FinancialOS. Every tile is a
+ * link into one FinancialOS view, so the whole surface is navigable with the keyboard alone.
+ *
+ * The grid is deliberate rather than auto-fitting, so the spending tile keeps the emphasis it
+ * deserves at every width: one column below 40rem, two columns to 62rem, three above.
+ */
+
+@import './base.css';
+
+.page-newtab .content {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--fos-space-4), 2.4vh, var(--fos-space-6));
+}
+
+/* Greeting ---------------------------------------------------------------------------------- */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fos-space-2);
+  max-width: var(--fos-reading-max);
+}
+
+.overline {
+  color: var(--fos-ink-3);
+  font-size: var(--fos-text-xs);
+  font-weight: var(--fos-weight-semibold);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  font-size: clamp(1.5rem, 1rem + 1.9vw, 2.25rem);
+  font-weight: var(--fos-weight-semibold);
+  letter-spacing: var(--fos-tracking-display);
+  line-height: 1.1;
+}
+
+.lede {
+  color: var(--fos-ink-2);
+  font-size: var(--fos-text-lg);
+  line-height: var(--fos-leading-snug);
+  text-wrap: balance;
+}
+
+.lede--positive {
+  color: var(--fos-positive);
+}
+
+.lede--caution {
+  color: var(--fos-caution);
+}
+
+.lede--negative {
+  color: var(--fos-negative);
+}
+
+/* Header extras ----------------------------------------------------------------------------- */
+
+.privacy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fos-space-2);
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: var(--fos-radius-full);
+  background: var(--fos-surface);
+  box-shadow: inset 0 0 0 1px var(--fos-border);
+  color: var(--fos-ink-3);
+  font-size: var(--fos-text-xs);
+  font-weight: var(--fos-weight-medium);
+  white-space: nowrap;
+}
+
+.privacy-pill--shown {
+  background: var(--fos-accent-soft);
+  box-shadow: none;
+  color: var(--fos-accent-ink);
+}
+
+@media (width <= 30rem) {
+  .privacy-pill span:not(.icon) {
+    display: none;
+  }
+
+  .privacy-pill {
+    padding: 0 9px;
+  }
+}
+
+/* Notices ----------------------------------------------------------------------------------- */
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: var(--fos-space-2);
+  padding: 10px var(--fos-space-4);
+  border-radius: var(--fos-radius-lg);
+  background: var(--fos-surface);
+  box-shadow: inset 0 0 0 1px var(--fos-border);
+  color: var(--fos-ink-2);
+  font-size: var(--fos-text-sm);
+}
+
+/* Tile grid --------------------------------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--fos-space-4);
+}
+
+@media (width >= 40rem) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tile--spending,
+  .tile--nudge {
+    grid-column: span 2;
+  }
+}
+
+@media (width >= 62rem) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tile--nudge {
+    grid-column: span 3;
+  }
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fos-space-3);
+  min-height: 8.5rem;
+  padding: var(--fos-space-4) var(--fos-space-5);
+  border-radius: var(--fos-radius-xl);
+  background: var(--fos-surface);
+  box-shadow:
+    inset 0 0 0 1px var(--fos-border),
+    var(--fos-shadow-1);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    box-shadow var(--fos-duration) var(--fos-ease-out),
+    transform var(--fos-duration) var(--fos-ease-out),
+    background-color var(--fos-duration) var(--fos-ease-out);
+}
+
+a.tile:hover {
+  background: var(--fos-surface);
+  box-shadow:
+    inset 0 0 0 1px var(--fos-border-strong),
+    var(--fos-shadow-2);
+  transform: translateY(-1px);
+}
+
+a.tile:active {
+  transform: translateY(0);
+}
+
+.tile-head {
+  display: flex;
+  align-items: center;
+  gap: var(--fos-space-2);
+}
+
+.tile-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--fos-radius-sm);
+  background: var(--fos-surface-sunken);
+  color: var(--fos-ink-2);
+}
+
+.tile-label {
+  flex: 1;
+  min-width: 0;
+  color: var(--fos-ink-2);
+  font-size: var(--fos-text-sm);
+  font-weight: var(--fos-weight-semibold);
+  letter-spacing: 0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tile-go {
+  display: inline-flex;
+  color: var(--fos-ink-3);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity var(--fos-duration) var(--fos-ease-out),
+    transform var(--fos-duration) var(--fos-ease-out);
+}
+
+a.tile:hover .tile-go,
+a.tile:focus-visible .tile-go {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.tile-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--fos-space-2);
+}
+
+.tile-note {
+  color: var(--fos-ink-3);
+  font-size: var(--fos-text-sm);
+  line-height: var(--fos-leading-snug);
+  text-wrap: pretty;
+}
+
+.privacy-note {
+  max-width: 34ch;
+}
+
+/* Figures ----------------------------------------------------------------------------------- */
+
+.figure {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  color: var(--fos-ink);
+  font-size: var(--fos-text-figure);
+  font-weight: var(--fos-weight-semibold);
+  letter-spacing: var(--fos-tracking-display);
+  line-height: 1;
+}
+
+.figure-unit {
+  color: var(--fos-ink-3);
+  font-size: 0.5em;
+  font-weight: var(--fos-weight-medium);
+}
+
+.figure-unknown {
+  color: var(--fos-ink-3);
+  font-size: 0.58em;
+  font-weight: var(--fos-weight-medium);
+  letter-spacing: 0;
+}
+
+.figure-amount {
+  display: block;
+  color: var(--fos-ink);
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2rem);
+  font-weight: var(--fos-weight-semibold);
+  letter-spacing: var(--fos-tracking-display);
+  line-height: 1.1;
+}
+
+.figure-caption {
+  color: var(--fos-ink-3);
+  font-size: var(--fos-text-sm);
+}
+
+.figure-quiet {
+  display: flex;
+  align-items: center;
+  gap: var(--fos-space-2);
+  color: var(--fos-ink);
+  font-size: var(--fos-text-lg);
+  font-weight: var(--fos-weight-medium);
+}
+
+.figure-quiet--calm {
+  color: var(--fos-positive);
+}
+
+.figure-hidden {
+  display: flex;
+  align-items: center;
+  min-height: 2.25rem;
+}
+
+.figure-hidden .masked {
+  padding: 6px 14px 6px 11px;
+  font-size: var(--fos-text-base);
+}
+
+/* Spending tile ----------------------------------------------------------------------------- */
+
+.spend-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  column-gap: var(--fos-space-3);
+  row-gap: var(--fos-space-1);
+}
+
+.spend-row .figure {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.spend-row .figure-caption {
+  grid-row: 2;
+  grid-column: 1;
+}
+
+.side {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-self: center;
+  justify-self: end;
+  text-align: right;
+}
+
+.side-label {
+  color: var(--fos-ink-3);
+  font-size: var(--fos-text-xs);
+  font-weight: var(--fos-weight-medium);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.side-amount {
+  color: var(--fos-ink);
+  font-size: var(--fos-text-lg);
+  font-weight: var(--fos-weight-semibold);
+}
+
+/* Meter: plan used (fill) against period elapsed (marker) */
+
+.meter {
+  position: relative;
+  height: 10px;
+  margin-block: var(--fos-space-1);
+  border-radius: var(--fos-radius-full);
+  background: var(--fos-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--fos-border);
+}
+
+.meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fill, 0%);
+  border-radius: inherit;
+  background: var(--fos-accent);
+  transition: width var(--fos-duration-slow) var(--fos-ease-out);
+}
+
+/* The period marker stands slightly proud of the bar, with a ring so it reads against the fill. */
+.meter-marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: var(--marker, 0%);
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--fos-ink);
+  box-shadow: 0 0 0 1.5px var(--fos-surface);
+}
+
+.meter--positive .meter-fill {
+  background: var(--fos-positive-solid);
+}
+
+.meter--caution .meter-fill {
+  background: var(--fos-caution-solid);
+}
+
+.meter--negative .meter-fill {
+  background: var(--fos-negative-solid);
+}
+
+.meter--neutral .meter-fill {
+  background: var(--fos-border-strong);
+}
+
+/* Over plan: the bar is full, and the stripes say the overflow is not measurable on this scale. */
+.meter--overflow .meter-fill {
+  background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.28) 0 6px, transparent 6px 12px);
+}
+
+.meter-caption {
+  display: flex;
+  align-items: center;
+  gap: var(--fos-space-2);
+  margin-top: auto;
+  color: var(--fos-ink-3);
+  font-size: var(--fos-text-xs);
+}
+
+.marker-dot {
+  width: 2px;
+  height: 11px;
+  border-radius: 1px;
+  background: var(--fos-ink);
+}
+
+/* Due soon ---------------------------------------------------------------------------------- */
+
+.details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fos-space-1) var(--fos-space-5);
+  margin-top: auto;
+  padding-top: var(--fos-space-3);
+  border-top: 1px solid var(--fos-border);
+}
+
+.detail {
+  display: flex;
+  align-items: baseline;
+  gap: var(--fos-space-2);
+  min-width: 0;
+  font-size: var(--fos-text-sm);
+}
+
+.detail-label {
+  color: var(--fos-ink-3);
+}
+
+.detail-value {
+  min-width: 0;
+  color: var(--fos-ink);
+  font-weight: var(--fos-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Attention --------------------------------------------------------------------------------- */
+
+.tile--attention-open .tile-icon {
+  background: var(--fos-caution-soft);
+  color: var(--fos-caution);
+}
+
+/* Goals ------------------------------------------------------------------------------------- */
+
+.goal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.goal {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.goal-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--fos-space-3);
+}
+
+.goal-label {
+  min-width: 0;
+  color: var(--fos-ink);
+  font-size: var(--fos-text-sm);
+  font-weight: var(--fos-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goal-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--fos-space-2);
+  white-space: nowrap;
+}
+
+.goal-amount {
+  color: var(--fos-ink-2);
+  font-size: var(--fos-text-sm);
+}
+
+.goal-percent {
+  color: var(--fos-ink);
+  font-size: var(--fos-text-sm);
+  font-weight: var(--fos-weight-semibold);
+}
+
+.goal-bar {
+  display: block;
+  position: relative;
+  height: 6px;
+  border-radius: var(--fos-radius-full);
+  background: var(--fos-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--fos-border);
+  overflow: hidden;
+}
+
+.goal-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--fill, 0%);
+  border-radius: inherit;
+  background: var(--fos-accent);
+  transition: width var(--fos-duration-slow) var(--fos-ease-out);
+}
+
+/* Coach ------------------------------------------------------------------------------------- */
+
+.tile--nudge {
+  min-height: 0;
+  padding-block: var(--fos-space-4);
+  background: linear-gradient(180deg, var(--fos-accent-soft), transparent 140%), var(--fos-surface);
+}
+
+/* Wide enough for a strip: the label sits beside the sentence instead of above it. */
+@media (width >= 62rem) {
+  .tile--nudge {
+    display: grid;
+    grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--fos-space-5);
+  }
+
+  .tile--nudge .tile-head {
+    align-self: center;
+  }
+
+  .tile--nudge .tile-body {
+    gap: var(--fos-space-1);
+  }
+}
+
+.tile--nudge .tile-icon {
+  background: var(--fos-surface);
+  color: var(--fos-accent-ink);
+}
+
+.nudge-kicker {
+  color: var(--fos-accent-ink);
+  font-size: var(--fos-text-xs);
+  font-weight: var(--fos-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nudge-text {
+  max-width: var(--fos-reading-max);
+  color: var(--fos-ink);
+  font-size: var(--fos-text-lg);
+  line-height: var(--fos-leading-snug);
+  text-wrap: pretty;
+}
+
+/* Footer row -------------------------------------------------------------------------------- */
+
+.footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fos-space-4);
+  margin-top: auto;
+}
+
+.freshness {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fos-space-3);
+  min-height: 44px;
+  padding: 0 14px 0 12px;
+  border-radius: var(--fos-radius-full);
+  color: var(--fos-ink-2);
+  text-decoration: none;
+  transition: background-color var(--fos-duration) var(--fos-ease-out);
+}
+
+.freshness:hover {
+  background: var(--fos-surface);
+}
+
+.fresh-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--fos-radius-full);
+  background: var(--fos-ink-3);
+  box-shadow: 0 0 0 3px var(--fos-surface-sunken);
+}
+
+.freshness--fresh .fresh-dot {
+  background: var(--fos-positive-solid);
+}
+
+.freshness--aging .fresh-dot {
+  background: var(--fos-caution-solid);
+}
+
+.freshness--stale .fresh-dot {
+  background: var(--fos-negative-solid);
+}
+
+.fresh-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--fos-space-1) var(--fos-space-2);
+  font-size: var(--fos-text-sm);
+}
+
+.fresh-updated {
+  color: var(--fos-ink-3);
+  font-size: var(--fos-text-xs);
+}
+
+.fresh-updated::before {
+  content: '·';
+  margin-right: var(--fos-space-2);
+}
+
+/* State cards (not configured, pairing, offline, locked) -------------------------------------
+ *
+ * These views carry one message and one action, so the whole column is centred in the window
+ * rather than left to hang in the top-left corner of an otherwise empty new tab.
+ */
+
+.page-newtab .content:not([data-view='connected'], [data-view='loading']) {
+  align-items: center;
+  justify-content: center;
+  padding-bottom: clamp(var(--fos-space-8), 9vh, var(--fos-space-16));
+  text-align: center;
+}
+
+.page-newtab .content:not([data-view='connected'], [data-view='loading']) .hero,
+.page-newtab .content:not([data-view='connected'], [data-view='loading']) .state-card {
+  align-items: center;
+}
+
+.page-newtab .content:not([data-view='connected'], [data-view='loading']) .state-actions {
+  justify-content: center;
+}
+
+.state-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--fos-space-3);
+  max-width: 34rem;
+  padding: clamp(var(--fos-space-5), 3vw, var(--fos-space-8));
+  border-radius: var(--fos-radius-xl);
+  background: var(--fos-surface);
+  box-shadow:
+    inset 0 0 0 1px var(--fos-border),
+    var(--fos-shadow-2);
+}
+
+.state-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--fos-radius-lg);
+  background: var(--fos-accent-soft);
+  color: var(--fos-accent-ink);
+}
+
+.state-card--neutral .state-icon {
+  background: var(--fos-surface-sunken);
+  color: var(--fos-ink-2);
+}
+
+.state-title {
+  font-size: var(--fos-text-2xl);
+  letter-spacing: var(--fos-tracking-display);
+}
+
+.state-text {
+  max-width: 46ch;
+  color: var(--fos-ink-2);
+  line-height: var(--fos-leading-normal);
+  text-wrap: pretty;
+}
+
+.state-hint {
+  max-width: 46ch;
+  color: var(--fos-ink-3);
+  font-size: var(--fos-text-sm);
+  line-height: var(--fos-leading-snug);
+}
+
+.state-card .user-code {
+  align-self: stretch;
+}
+
+.state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fos-space-3);
+  margin-top: var(--fos-space-2);
+}
+
+.assurances {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fos-space-2);
+  align-self: stretch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--fos-ink-2);
+  font-size: var(--fos-text-sm);
+  /* A list of statements reads as a list, whatever the surrounding block alignment. */
+  text-align: left;
+}
+
+.assurances li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--fos-space-2);
+}
+
+.assurances .icon {
+  margin-top: 2px;
+  color: var(--fos-positive);
+}
+
+/* Loading skeleton -------------------------------------------------------------------------- */
+
+.skeleton {
+  gap: var(--fos-space-3);
+  box-shadow: inset 0 0 0 1px var(--fos-border);
+}
+
+.sk-big {
+  width: 45%;
+  height: 30px;
+  border-radius: var(--fos-radius-sm);
+}
+
+.sk-short {
+  width: 35%;
+  height: 10px;
+}
+
+.sk-overline {
+  width: 9rem;
+  height: 10px;
+}
+
+.sk-title {
+  width: 16rem;
+  height: 30px;
+  border-radius: var(--fos-radius-sm);
+}
+
+.page-newtab .hero .sk-line {
+  margin-bottom: var(--fos-space-2);
+}
+
+/* Narrow windows ---------------------------------------------------------------------------- */
+
+@media (width <= 26rem) {
+  .tile {
+    padding: var(--fos-space-4);
+  }
+
+  .state-actions,
+  .footer-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .state-card {
+    align-self: stretch;
+  }
+
+  .freshness {
+    padding-left: 0;
+  }
+}

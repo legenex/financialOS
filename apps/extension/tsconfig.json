@@ -3,7 +3,10 @@
   "compilerOptions": {
     "noEmit": true,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["chrome"]
+    // "node" is here for the build-policy tests in src/manifest.test.ts, which read the manifest
+    // template from disk. The shipped bundle stays browser-only: esbuild builds with
+    // platform 'browser', and build.mjs refuses any output that is not local browser code.
+    "types": ["chrome", "node"]
   },
   "include": ["src", "*.ts"]
 }

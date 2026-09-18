@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="referrer" content="no-referrer" />
+    <title>New Tab</title>
+    <link rel="icon" href="icons/icon-32.png" />
+    <link rel="stylesheet" href="tokens.css" />
+    <link rel="stylesheet" href="newtab.css" />
+    <script type="module" src="newtab.js"></script>
+  </head>
+  <body class="page-newtab">
+    <div id="app" class="shell">
+      <header class="topbar">
+        <span class="brand">
+          <img class="brand-mark" src="icons/mark.svg" alt="" width="28" height="28" />
+          <span class="brand-word">Financial<span class="brand-os">OS</span></span>
+        </span>
+      </header>
+      <main class="content" id="main" aria-busy="true">
+        <section class="hero" aria-hidden="true">
+          <span class="sk-line sk-overline"></span>
+          <span class="sk-line sk-title"></span>
+        </section>
+        <div class="grid" aria-hidden="true">
+          <div class="tile skeleton tile--spending">
+            <span class="sk-line sk-short"></span><span class="sk-line sk-big"></span><span class="sk-line"></span>
+          </div>
+          <div class="tile skeleton">
+            <span class="sk-line sk-short"></span><span class="sk-line sk-big"></span><span class="sk-line"></span>
+          </div>
+          <div class="tile skeleton">
+            <span class="sk-line sk-short"></span><span class="sk-line sk-big"></span><span class="sk-line"></span>
+          </div>
+          <div class="tile skeleton">
+            <span class="sk-line sk-short"></span><span class="sk-line sk-big"></span><span class="sk-line"></span>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

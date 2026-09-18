@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 264 64" width="264" height="64" role="img" aria-labelledby="t">
+  <title id="t">FinancialOS</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#127a70"/>
+      <stop offset="1" stop-color="#0b5a53"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#tile)"/>
+  <g fill="#ffffff">
+    <rect x="18" y="15" width="8" height="34" rx="4"/>
+    <rect x="18" y="15" width="28" height="8" rx="4"/>
+    <rect x="18" y="28" width="16" height="8" rx="4"/>
+  </g>
+  <circle cx="42" cy="32" r="4" fill="#7fe0cf"/>
+  <!-- Dark-background variant. Live text: renders in Inter when available (bundled in the app), otherwise the system sans. -->
+  <text x="79" y="43" textLength="182" lengthAdjust="spacingAndGlyphs" font-family="'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="31" font-weight="600" letter-spacing="-0.6" fill="#ecedeb">Financial<tspan fill="#7fdccf">OS</tspan></text>
+</svg>

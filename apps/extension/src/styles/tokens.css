@@ -1,0 +1,216 @@
+/*
+ * FinancialOS design tokens — extension fallback copy.
+ *
+ * The build copies packages/ui/src/tokens.css into dist/tokens.css whenever that file exists and
+ * is self-contained (no @import, no remote url()). This file is used only when the shared file is
+ * unavailable, for example when the extension is built from an export that does not ship
+ * packages/ui. It carries the same values for every token the extension uses; chart, sidebar and
+ * navigation tokens are intentionally omitted because no extension page draws charts or chrome.
+ *
+ * Keep the values here identical to packages/ui/src/tokens.css. Light is the default; dark applies
+ * when the operating system prefers it. The extension has no theme switch of its own, so
+ * `data-theme` is honoured only so a shared token file behaves the same way.
+ */
+
+@layer base {
+  :root {
+    color-scheme: light;
+
+    /* Neutrals (warm stone) */
+    --fos-bg: #f7f7f5;
+    --fos-surface: #ffffff;
+    --fos-surface-sunken: #f2f2ef;
+    --fos-surface-hover: #f4f4f1;
+    --fos-surface-active: #ebeae6;
+    --fos-border: #e4e3de;
+    --fos-border-strong: #d2d0c9;
+    --fos-ink: #161615;
+    --fos-ink-2: #4d4c48;
+    --fos-ink-3: #6b6a65;
+    --fos-ink-inverse: #ffffff;
+
+    /* Accent: deep teal */
+    --fos-accent: #0e6b62;
+    --fos-accent-hover: #0b5c54;
+    --fos-accent-active: #094d46;
+    --fos-accent-soft: #e3f1ee;
+    --fos-accent-ink: #0a564f;
+    --fos-on-accent: #ffffff;
+
+    /* Semantic (muted) */
+    --fos-positive: #237a3b;
+    --fos-positive-soft: #e6f3ea;
+    --fos-positive-solid: #2f8a47;
+    --fos-caution: #8a5a00;
+    --fos-caution-soft: #fbf1dc;
+    --fos-caution-solid: #c98a1b;
+    --fos-negative: #b4322c;
+    --fos-negative-soft: #fbeae8;
+    --fos-negative-solid: #c8423b;
+    --fos-info: #2b5fad;
+    --fos-info-soft: #e8f0fb;
+    --fos-info-solid: #3f6fd8;
+
+    --fos-focus: #0e6b62;
+    --fos-focus-halo: rgb(14 107 98 / 0.18);
+    --fos-overlay: rgb(22 22 21 / 0.38);
+    --fos-cover: #f7f7f5;
+
+    /* Elevation: hairlines first, shadows very subtle */
+    --fos-shadow-1: 0 1px 2px rgb(22 22 21 / 0.04);
+    --fos-shadow-2: 0 1px 2px rgb(22 22 21 / 0.04), 0 6px 20px rgb(22 22 21 / 0.06);
+    --fos-shadow-3: 0 2px 8px rgb(22 22 21 / 0.06), 0 20px 56px rgb(22 22 21 / 0.16);
+
+    /* Typography */
+    --fos-font-sans:
+      'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    --fos-font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --fos-font-features: 'cv11' 1, 'ss01' 0;
+    --fos-figure-features: 'tnum' 1, 'cv11' 1;
+    --fos-text-2xs: 0.6875rem;
+    --fos-text-xs: 0.75rem;
+    --fos-text-sm: 0.8125rem;
+    --fos-text-base: 0.875rem;
+    --fos-text-md: 0.9375rem;
+    --fos-text-lg: 1.0625rem;
+    --fos-text-xl: 1.25rem;
+    --fos-text-2xl: 1.5rem;
+    --fos-text-3xl: 1.875rem;
+    --fos-text-figure: clamp(2rem, 1.6rem + 1.6vw, 2.5rem);
+    --fos-leading-tight: 1.2;
+    --fos-leading-snug: 1.35;
+    --fos-leading-normal: 1.5;
+    --fos-weight-regular: 400;
+    --fos-weight-medium: 500;
+    --fos-weight-semibold: 600;
+    --fos-tracking-tight: -0.011em;
+    --fos-tracking-display: -0.022em;
+
+    /* Spacing: 4px scale */
+    --fos-space-0-5: 2px;
+    --fos-space-1: 4px;
+    --fos-space-1-5: 6px;
+    --fos-space-2: 8px;
+    --fos-space-3: 12px;
+    --fos-space-4: 16px;
+    --fos-space-5: 20px;
+    --fos-space-6: 24px;
+    --fos-space-8: 32px;
+    --fos-space-10: 40px;
+    --fos-space-12: 48px;
+    --fos-space-16: 64px;
+
+    /* Radius */
+    --fos-radius-xs: 6px;
+    --fos-radius-sm: 8px;
+    --fos-radius-md: 10px;
+    --fos-radius-lg: 12px;
+    --fos-radius-xl: 16px;
+    --fos-radius-full: 9999px;
+
+    /* Motion */
+    --fos-duration-fast: 120ms;
+    --fos-duration: 160ms;
+    --fos-duration-slow: 220ms;
+    --fos-ease-out: cubic-bezier(0.22, 0.8, 0.26, 1);
+
+    /* Layering */
+    --fos-z-modal: 50;
+
+    /* Layout */
+    --fos-content-max: 72rem;
+    --fos-reading-max: 42rem;
+    --fos-touch-min: 44px;
+    --fos-control-h: 2.5rem;
+  }
+
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --fos-bg: #0e0f0f;
+    --fos-surface: #161817;
+    --fos-surface-sunken: #121413;
+    --fos-surface-hover: #1c1f1e;
+    --fos-surface-active: #242827;
+    --fos-border: #272b29;
+    --fos-border-strong: #383d3a;
+    --fos-ink: #ecedeb;
+    --fos-ink-2: #b6bab6;
+    --fos-ink-3: #8f948f;
+    --fos-ink-inverse: #0e0f0f;
+    --fos-accent: #3cbcab;
+    --fos-accent-hover: #52c8b8;
+    --fos-accent-active: #6ad3c4;
+    --fos-accent-soft: #10302c;
+    --fos-accent-ink: #7fdccf;
+    --fos-on-accent: #04201d;
+    --fos-positive: #62c486;
+    --fos-positive-soft: #10291a;
+    --fos-positive-solid: #3fa866;
+    --fos-caution: #e5b454;
+    --fos-caution-soft: #2e2410;
+    --fos-caution-solid: #d19a2e;
+    --fos-negative: #f0857c;
+    --fos-negative-soft: #341614;
+    --fos-negative-solid: #dc5b52;
+    --fos-info: #82b2f1;
+    --fos-info-soft: #14233a;
+    --fos-info-solid: #5a88e4;
+    --fos-focus: #5fd4c4;
+    --fos-focus-halo: rgb(95 212 196 / 0.22);
+    --fos-overlay: rgb(0 0 0 / 0.6);
+    --fos-cover: #0e0f0f;
+    --fos-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
+    --fos-shadow-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.3);
+    --fos-shadow-3: 0 2px 8px rgb(0 0 0 / 0.4), 0 24px 64px rgb(0 0 0 / 0.5);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      color-scheme: dark;
+      --fos-bg: #0e0f0f;
+      --fos-surface: #161817;
+      --fos-surface-sunken: #121413;
+      --fos-surface-hover: #1c1f1e;
+      --fos-surface-active: #242827;
+      --fos-border: #272b29;
+      --fos-border-strong: #383d3a;
+      --fos-ink: #ecedeb;
+      --fos-ink-2: #b6bab6;
+      --fos-ink-3: #8f948f;
+      --fos-ink-inverse: #0e0f0f;
+      --fos-accent: #3cbcab;
+      --fos-accent-hover: #52c8b8;
+      --fos-accent-active: #6ad3c4;
+      --fos-accent-soft: #10302c;
+      --fos-accent-ink: #7fdccf;
+      --fos-on-accent: #04201d;
+      --fos-positive: #62c486;
+      --fos-positive-soft: #10291a;
+      --fos-positive-solid: #3fa866;
+      --fos-caution: #e5b454;
+      --fos-caution-soft: #2e2410;
+      --fos-caution-solid: #d19a2e;
+      --fos-negative: #f0857c;
+      --fos-negative-soft: #341614;
+      --fos-negative-solid: #dc5b52;
+      --fos-info: #82b2f1;
+      --fos-info-soft: #14233a;
+      --fos-info-solid: #5a88e4;
+      --fos-focus: #5fd4c4;
+      --fos-focus-halo: rgb(95 212 196 / 0.22);
+      --fos-overlay: rgb(0 0 0 / 0.6);
+      --fos-cover: #0e0f0f;
+      --fos-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
+      --fos-shadow-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.3);
+      --fos-shadow-3: 0 2px 8px rgb(0 0 0 / 0.4), 0 24px 64px rgb(0 0 0 / 0.5);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --fos-duration-fast: 0ms;
+      --fos-duration: 0ms;
+      --fos-duration-slow: 0ms;
+    }
+  }
+}

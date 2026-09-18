@@ -5,12 +5,15 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema/index.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
-    "db:migrate": "tsx src/migrate-cli.ts"
+    "db:migrate": "tsx src/migrate-cli.ts",
+    "db:bootstrap": "tsx src/bootstrap-cli.ts",
+    "db:seed-demo": "tsx src/seed/demo-cli.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

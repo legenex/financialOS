@@ -1,0 +1,336 @@
+# FinancialOS production stack (Compose project "financialos").
+#
+# Managed by deploy/scripts/{deploy,rollback,start,stop,migrate,backup,restore}.sh, which export:
+#   FOS_IMAGE         explicit image tag (recorded in $FOS_RUNTIME_DIR/release.env; never "latest")
+#   FOS_RUNTIME_DIR   private runtime directory (config, secrets, backups)
+#   FOS_SECRETS_GID   group that may read the 0640 secret/config files (group of $FOS_RUNTIME_DIR/secrets)
+#   FOS_APP_PORT      loopback port for the app (default 3180)
+#   FOS_PGDATA_VOLUME / FOS_DOCUMENTS_VOLUME   data volume names (defaults financialos_pgdata/_documents)
+#
+# Only the app port is published, and only on 127.0.0.1. PostgreSQL is reachable on the internal network only.
+# Volumes are external so that no Compose command (including "down -v") can delete production data;
+# deploy.sh creates them once.
+name: financialos
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-app-hardening: &app-hardening
+  image: ${FOS_IMAGE:?FOS_IMAGE must name an explicit image tag}
+  user: "10001:10001"
+  group_add:
+    - "${FOS_SECRETS_GID:?FOS_SECRETS_GID is required}"
+  read_only: true
+  init: true
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  logging: *logging
+
+x-app-env: &app-env
+  FOS_ENVIRONMENT: production
+  FOS_CONFIG_FILE: /run/fos/config/app-config.json
+  FOS_OPS_STATUS_DIR: /run/fos/config
+  FOS_KEYRING_FILE: /run/secrets/keyring.json
+  FOS_DB_PASSWORD_FILE: /run/secrets/db-password
+  FOS_SECRET_FILES_GROUP_READABLE: "1"
+  FOS_DOCUMENTS_DIR: /data/documents
+  TZ: UTC
+
+services:
+  db:
+    image: ${FOS_POSTGRES_IMAGE:-postgres:17-bookworm}
+    user: "999:999"
+    group_add:
+      - "${FOS_SECRETS_GID:?FOS_SECRETS_GID is required}"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/db-superuser-password
+      POSTGRES_INITDB_ARGS: "--auth-local=peer --auth-host=scram-sha-256 --data-checksums"
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      FOS_DB_NAME: financialos
+      TZ: UTC
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - effective_cache_size=256MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=32MB
+      - -c
+      - max_connections=40
+      - -c
+      - max_wal_size=512MB
+      - -c
+      - wal_compression=on
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - log_statement=none
+      - -c
+      - log_min_error_statement=panic
+      - -c
+      - log_min_duration_statement=-1
+      - -c
+      - log_error_verbosity=terse
+      - -c
+      - log_connections=off
+      - -c
+      - log_disconnections=off
+      - -c
+      - log_line_prefix=%m [%p] %q%u@%d
+      - -c
+      - timezone=UTC
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../db/init:/docker-entrypoint-initdb.d:ro
+    tmpfs:
+      - /var/run/postgresql:size=1m,mode=1777
+      - /tmp:size=64m,mode=1777
+    secrets:
+      - db-superuser-password
+      - db-migrator-password
+      - db-app-password
+      - db-worker-password
+      - db-backup-password
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    shm_size: 128m
+    mem_limit: 768m
+    memswap_limit: 768m
+    cpus: 1.5
+    pids_limit: 200
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "5432", "-U", "postgres", "-d", "postgres", "-q"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    networks: [internal]
+    restart: unless-stopped
+    logging: *logging
+
+  migrate:
+    <<: *app-hardening
+    command:
+      - sh
+      - -c
+      - >-
+        node apps/worker/dist/cli.mjs migrate &&
+        if [ -f /run/fos/bootstrap/owner-bootstrap.json ]; then
+        node apps/worker/dist/cli.mjs bootstrap --file /run/fos/bootstrap/owner-bootstrap.json;
+        else echo "migrate: no private bootstrap file mounted; skipping bootstrap"; fi
+    environment:
+      <<: *app-env
+      FOS_DATABASE_ROLE: migrator
+      FOS_DATABASE_URL: postgres://fos_migrator@db:5432/financialos
+      FOS_DATABASE_URL_MIGRATOR: postgres://fos_migrator@db:5432/financialos
+      FOS_DB_ROLE_APP: fos_app
+      FOS_DB_ROLE_WORKER: fos_worker
+      FOS_DB_ROLE_BACKUP: fos_backup
+      NODE_OPTIONS: --max-old-space-size=384
+    secrets:
+      - source: db-migrator-password
+        target: db-password
+      - source: keyring
+        target: keyring.json
+    volumes:
+      - ${FOS_RUNTIME_DIR:?FOS_RUNTIME_DIR is required}/config:/run/fos/config:ro
+      - ${FOS_RUNTIME_DIR}/bootstrap:/run/fos/bootstrap:ro
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal]
+    restart: "no"
+
+  app:
+    <<: *app-hardening
+    command: ["node", "apps/api/dist/main.mjs"]
+    environment:
+      <<: *app-env
+      FOS_DATABASE_ROLE: app
+      FOS_DATABASE_URL: postgres://fos_app@db:5432/financialos
+      FOS_SESSION_PEPPER_FILE: /run/secrets/session-pepper
+      FOS_BOOTSTRAP_HASH_FILE: /run/secrets/bootstrap-secret-hash
+      FOS_HOST: 0.0.0.0
+      FOS_PORT: "3000"
+      NODE_OPTIONS: --max-old-space-size=320
+    ports:
+      - "127.0.0.1:${FOS_APP_PORT:-3180}:3000"
+    secrets:
+      - source: db-app-password
+        target: db-password
+      - source: keyring
+        target: keyring.json
+      - source: session-pepper
+        target: session-pepper
+      - source: bootstrap-secret-hash
+        target: bootstrap-secret-hash
+    volumes:
+      - ${FOS_RUNTIME_DIR}/config:/run/fos/config:ro
+      - documents:/data/documents
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 256
+    stop_grace_period: 20s
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/healthz',{signal:AbortSignal.timeout(4000)}).then((r)=>process.exit(r.ok?0:1),()=>process.exit(1))"
+      interval: 30s
+      timeout: 6s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks: [internal, egress]
+    restart: unless-stopped
+
+  worker:
+    <<: *app-hardening
+    command: ["node", "apps/worker/dist/main.mjs"]
+    environment:
+      <<: *app-env
+      FOS_DATABASE_ROLE: worker
+      FOS_DATABASE_URL: postgres://fos_worker@db:5432/financialos
+      FOS_BACKUP_DIR: /data/backups
+      FOS_BACKUP_KEY_FILE: /run/secrets/backup-key
+      FOS_BACKUP_DB_USER: fos_backup
+      FOS_BACKUP_DB_PASSWORD_FILE: /run/secrets/db-backup-password
+      NODE_OPTIONS: --max-old-space-size=448
+    secrets:
+      - source: db-worker-password
+        target: db-password
+      - source: db-backup-password
+        target: db-backup-password
+      - source: keyring
+        target: keyring.json
+      - source: backup-key
+        target: backup-key
+    volumes:
+      - ${FOS_RUNTIME_DIR}/config:/run/fos/config:ro
+      - documents:/data/documents
+      - ${FOS_RUNTIME_DIR}/backups:/data/backups
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    mem_limit: 768m
+    memswap_limit: 768m
+    cpus: 1.0
+    pids_limit: 256
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD", "node", "apps/worker/dist/cli.mjs", "health"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks: [internal, egress]
+    restart: unless-stopped
+
+  # Real restore (deploy/scripts/restore.sh only; never started by "up"). Restores a backup into the EMPTY
+  # database and documents volume of a freshly initialised cluster.
+  restore:
+    <<: *app-hardening
+    profiles: [restore]
+    command: ["sh", "-c", "echo 'run this service only through deploy/scripts/restore.sh' >&2; exit 2"]
+    environment:
+      <<: *app-env
+      FOS_DATABASE_ROLE: migrator
+      FOS_DATABASE_URL: postgres://fos_migrator@db:5432/financialos
+      FOS_DATABASE_URL_MIGRATOR: postgres://fos_migrator@db:5432/financialos
+      FOS_DB_ROLE_APP: fos_app
+      FOS_DB_ROLE_WORKER: fos_worker
+      FOS_DB_ROLE_BACKUP: fos_backup
+      FOS_TARGET_DB_PASSWORD_FILE: /run/secrets/db-password
+      FOS_BACKUP_DIR: /data/backups
+      FOS_BACKUP_KEY_FILE: /run/secrets/backup-key
+      NODE_OPTIONS: --max-old-space-size=448
+    secrets:
+      - source: db-migrator-password
+        target: db-password
+      - source: keyring
+        target: keyring.json
+      - source: backup-key
+        target: backup-key
+    volumes:
+      - ${FOS_RUNTIME_DIR}/config:/run/fos/config:ro
+      - ${FOS_RUNTIME_DIR}/backups:/data/backups:ro
+      - documents:/data/documents
+      - restore-scratch:/data/scratch
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 128
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal]
+    restart: "no"
+
+networks:
+  internal:
+    internal: true
+  egress: {}
+
+volumes:
+  # restore.sh restores into fresh volumes and switches these names in $FOS_RUNTIME_DIR/release.env, so the
+  # previous data stays intact until the owner removes it.
+  pgdata:
+    name: ${FOS_PGDATA_VOLUME:-financialos_pgdata}
+    external: true
+  documents:
+    name: ${FOS_DOCUMENTS_VOLUME:-financialos_documents}
+    external: true
+  # Temporary space for restore.sh; removed by the script when the restore finishes.
+  restore-scratch:
+    name: financialos_restore_scratch
+
+secrets:
+  db-superuser-password:
+    file: ${FOS_RUNTIME_DIR}/secrets/db-superuser-password
+  db-migrator-password:
+    file: ${FOS_RUNTIME_DIR}/secrets/db-migrator-password
+  db-app-password:
+    file: ${FOS_RUNTIME_DIR}/secrets/db-app-password
+  db-worker-password:
+    file: ${FOS_RUNTIME_DIR}/secrets/db-worker-password
+  db-backup-password:
+    file: ${FOS_RUNTIME_DIR}/secrets/db-backup-password
+  keyring:
+    file: ${FOS_RUNTIME_DIR}/secrets/keyring.json
+  session-pepper:
+    file: ${FOS_RUNTIME_DIR}/secrets/session-pepper
+  bootstrap-secret-hash:
+    file: ${FOS_RUNTIME_DIR}/secrets/bootstrap-secret.sha256
+  backup-key:
+    file: ${FOS_RUNTIME_DIR}/secrets/backup-key

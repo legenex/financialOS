@@ -4,4 +4,6 @@ export * from './dates';
 export * from './fx';
 
 // --- domain-core exports ---
+export * from './core';
 // --- domain-planning exports ---
+export * from './planning';

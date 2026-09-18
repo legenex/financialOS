@@ -163,6 +163,8 @@ export const SourceLink = z.object({
     'restriction',
     'receivable',
     'scenario',
+    'review',
+    'achievement',
   ]),
   id: z.string(),
   label: z.string(),

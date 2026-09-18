@@ -20,6 +20,7 @@
     "decimal.js": "10.6.0",
     "fast-xml-parser": "5.11.1",
     "fflate": "0.8.3",
+    "imapflow": "2.0.5",
     "papaparse": "5.7.0",
     "read-excel-file": "9.3.10",
     "unpdf": "1.8.1",

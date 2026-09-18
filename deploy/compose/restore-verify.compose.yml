@@ -1,0 +1,169 @@
+# Isolated restore verification (Compose project "financialos-restore-<timestamp>", set by -p).
+#
+# Started only by deploy/scripts/restore-verify.sh, which exports:
+#   FOS_IMAGE                 the image currently deployed in production
+#   FOS_RUNTIME_DIR           private runtime directory (production keyring and backup key are read-only inputs)
+#   FOS_SECRETS_GID           group that may read the 0640 secret files
+#   FOS_RESTORE_DIR           temporary directory with the throwaway database passwords for this run
+#   FOS_RESTORE_BACKUP_FILE   backup file name inside ${FOS_RUNTIME_DIR}/backups
+#
+# The throwaway PostgreSQL runs on tmpfs with no published ports on an internal-only network, and the verifier
+# has no egress. The script tears the project down with its volumes when it finishes.
+name: financialos-restore
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "2"
+
+services:
+  restoredb:
+    image: ${FOS_POSTGRES_IMAGE:-postgres:17-bookworm}
+    user: "999:999"
+    group_add:
+      - "${FOS_SECRETS_GID:?FOS_SECRETS_GID is required}"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/db-superuser-password
+      POSTGRES_INITDB_ARGS: "--auth-local=peer --auth-host=scram-sha-256"
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      PGDATA: /var/lib/postgresql/data/pgdata
+      FOS_DB_NAME: financialos
+      TZ: UTC
+    command:
+      - postgres
+      - -c
+      - fsync=off
+      - -c
+      - synchronous_commit=off
+      - -c
+      - full_page_writes=off
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - max_connections=20
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - log_statement=none
+      - -c
+      - log_min_error_statement=panic
+      - -c
+      - timezone=UTC
+    volumes:
+      - ../db/init:/docker-entrypoint-initdb.d:ro
+    tmpfs:
+      - /var/lib/postgresql/data:size=${FOS_RESTORE_DB_TMPFS:-2g},uid=999,gid=999,mode=0700
+      - /var/run/postgresql:size=1m,mode=1777
+      - /tmp:size=32m,mode=1777
+    secrets:
+      - db-superuser-password
+      - db-migrator-password
+      - db-app-password
+      - db-worker-password
+      - db-backup-password
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    shm_size: 64m
+    mem_limit: ${FOS_RESTORE_DB_MEM:-2560m}
+    cpus: 1.0
+    pids_limit: 200
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "5432", "-U", "postgres", "-d", "postgres", "-q"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    networks: [restore]
+    logging: *logging
+
+  verify:
+    image: ${FOS_IMAGE:?FOS_IMAGE must name an explicit image tag}
+    user: "10001:10001"
+    group_add:
+      - "${FOS_SECRETS_GID}"
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - node
+      - apps/worker/dist/cli.mjs
+      - backup-verify
+      - --file
+      - /data/backups/${FOS_RESTORE_BACKUP_FILE:?FOS_RESTORE_BACKUP_FILE is required}
+      - --target-url
+      - postgres://fos_migrator@restoredb:5432/financialos
+    environment:
+      FOS_ENVIRONMENT: production
+      FOS_CONFIG_FILE: /run/fos/config/app-config.json
+      FOS_OPS_STATUS_DIR: /run/fos/config
+      FOS_KEYRING_FILE: /run/secrets/keyring.json
+      FOS_BACKUP_KEY_FILE: /run/secrets/backup-key
+      FOS_BACKUP_DIR: /data/backups
+      FOS_TARGET_DB_PASSWORD_FILE: /run/secrets/target-db-password
+      FOS_DATABASE_ROLE: migrator
+      FOS_DATABASE_URL: postgres://fos_migrator@restoredb:5432/financialos
+      FOS_DATABASE_URL_MIGRATOR: postgres://fos_migrator@restoredb:5432/financialos
+      FOS_DB_ROLE_APP: fos_app
+      FOS_DB_ROLE_WORKER: fos_worker
+      FOS_DB_ROLE_BACKUP: fos_backup
+      FOS_DB_PASSWORD_FILE: /run/secrets/target-db-password
+      FOS_SECRET_FILES_GROUP_READABLE: "1"
+      FOS_DOCUMENTS_DIR: /data/scratch/documents
+      FOS_SCRATCH_DIR: /data/scratch
+      NODE_OPTIONS: --max-old-space-size=448
+      TMPDIR: /data/scratch
+      TZ: UTC
+    secrets:
+      - source: db-migrator-password
+        target: target-db-password
+      - source: keyring
+        target: keyring.json
+      - source: backup-key
+        target: backup-key
+    volumes:
+      - ${FOS_RUNTIME_DIR:?FOS_RUNTIME_DIR is required}/config:/run/fos/config:ro
+      - ${FOS_RUNTIME_DIR}/backups:/data/backups:ro
+      - scratch:/data/scratch
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 128
+    depends_on:
+      restoredb:
+        condition: service_healthy
+    networks: [restore]
+    restart: "no"
+    logging: *logging
+
+networks:
+  restore:
+    internal: true
+
+volumes:
+  # Disk-backed scratch space for the (still encrypted) documents extracted from the backup while they are
+  # checked. It inherits uid 10001 and mode 0700 from /data/scratch in the image and is removed with the project.
+  scratch: {}
+
+secrets:
+  db-superuser-password:
+    file: ${FOS_RESTORE_DIR:?FOS_RESTORE_DIR is required}/db-superuser-password
+  db-migrator-password:
+    file: ${FOS_RESTORE_DIR}/db-migrator-password
+  db-app-password:
+    file: ${FOS_RESTORE_DIR}/db-app-password
+  db-worker-password:
+    file: ${FOS_RESTORE_DIR}/db-worker-password
+  db-backup-password:
+    file: ${FOS_RESTORE_DIR}/db-backup-password
+  keyring:
+    file: ${FOS_RUNTIME_DIR}/secrets/keyring.json
+  backup-key:
+    file: ${FOS_RUNTIME_DIR}/secrets/backup-key

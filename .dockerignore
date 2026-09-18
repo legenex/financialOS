@@ -1,0 +1,56 @@
+# Build context for deploy/docker/Dockerfile. Keep it small and free of private data.
+
+# Dependencies, toolchains, VCS and editor state
+**/node_modules
+.tools
+.git
+.gitattributes
+.kilo
+.claude
+.vscode
+.idea
+**/.DS_Store
+
+# Build and test output (rebuilt inside the image)
+**/dist
+**/build
+**/out
+**/coverage
+**/*.tsbuildinfo
+**/.vite
+apps/extension/release
+test-results
+playwright-report
+blob-report
+tests
+
+# Runtime data, secrets and anything that could hold private financial data
+runtime
+private
+backups
+secrets
+real-data
+statements
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.crt
+**/*.p12
+**/*.pfx
+**/*.enc
+**/*.age
+**/*.gpg
+**/*.dump
+**/*.backup
+**/*.bak
+**/*.sql.gz
+**/*.har
+**/*.log
+**/bootstrap-secret*
+**/*.secret
+
+# Operational files are not needed inside the image
+docs
+deploy
+!deploy/docker

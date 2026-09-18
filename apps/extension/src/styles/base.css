@@ -1,0 +1,453 @@
+/*
+ * Shared extension styles. Colours, type, spacing, and motion come from the FinancialOS design
+ * tokens (--fos-*), which the build copies into tokens.css. Everything ships inside the package:
+ * no remote fonts, no inline styles.
+ */
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('/fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--fos-bg);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  color: var(--fos-ink);
+  background:
+    radial-gradient(90rem 28rem at 50% -14rem, var(--fos-accent-soft), transparent 70%) no-repeat,
+    var(--fos-bg);
+  font-family: var(--fos-font-sans);
+  font-size: var(--fos-text-base);
+  line-height: var(--fos-leading-normal);
+  font-feature-settings: var(--fos-font-features);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: var(--fos-weight-semibold);
+  letter-spacing: var(--fos-tracking-tight);
+  line-height: var(--fos-leading-tight);
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+img {
+  display: block;
+}
+
+:focus-visible {
+  outline: 2px solid var(--fos-focus);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.figures {
+  font-feature-settings: var(--fos-figure-features);
+  font-variant-numeric: tabular-nums;
+}
+
+.mono {
+  font-family: var(--fos-font-mono);
+  font-size: 0.92em;
+}
+
+.icon {
+  flex: none;
+  display: block;
+}
+
+/* Layout shell */
+
+.shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 70rem;
+  margin: 0 auto;
+  padding-inline: clamp(var(--fos-space-4), 4vw, var(--fos-space-10));
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fos-space-3);
+  min-height: 3.5rem;
+  padding-top: var(--fos-space-2);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--fos-text-md);
+  font-weight: var(--fos-weight-semibold);
+  letter-spacing: var(--fos-tracking-tight);
+  color: var(--fos-ink);
+  min-width: 0;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+}
+
+.brand-os {
+  color: var(--fos-accent-ink);
+}
+
+.brand-sub {
+  margin-left: 2px;
+  padding-left: 10px;
+  border-left: 1px solid var(--fos-border-strong);
+  color: var(--fos-ink-3);
+  font-weight: var(--fos-weight-medium);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--fos-space-2);
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: var(--fos-radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fos-ink-2);
+  cursor: pointer;
+  transition:
+    background-color var(--fos-duration) var(--fos-ease-out),
+    border-color var(--fos-duration) var(--fos-ease-out),
+    color var(--fos-duration) var(--fos-ease-out);
+}
+
+.icon-button:hover {
+  background: var(--fos-surface);
+  border-color: var(--fos-border);
+  color: var(--fos-ink);
+}
+
+.content {
+  flex: 1;
+  padding-block: clamp(var(--fos-space-3), 3vh, var(--fos-space-8)) var(--fos-space-6);
+}
+
+/* Buttons */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--fos-space-2);
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--fos-radius-lg);
+  border: 1px solid transparent;
+  font-size: var(--fos-text-base);
+  font-weight: var(--fos-weight-semibold);
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--fos-duration) var(--fos-ease-out),
+    border-color var(--fos-duration) var(--fos-ease-out),
+    box-shadow var(--fos-duration) var(--fos-ease-out),
+    transform var(--fos-duration-fast) var(--fos-ease-out);
+}
+
+.button:active:not([disabled]) {
+  transform: translateY(1px);
+}
+
+.button[disabled] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.button--primary {
+  background: var(--fos-accent);
+  color: var(--fos-on-accent);
+  box-shadow: var(--fos-shadow-1);
+}
+
+.button--primary:hover:not([disabled]) {
+  background: var(--fos-accent-hover);
+}
+
+.button--primary:active:not([disabled]) {
+  background: var(--fos-accent-active);
+}
+
+.button--secondary {
+  background: var(--fos-surface);
+  border-color: var(--fos-border-strong);
+  color: var(--fos-ink);
+}
+
+.button--secondary:hover:not([disabled]) {
+  background: var(--fos-surface-hover);
+}
+
+.button--ghost {
+  background: transparent;
+  color: var(--fos-ink-2);
+}
+
+.button--ghost:hover:not([disabled]) {
+  background: var(--fos-surface-hover);
+  color: var(--fos-ink);
+}
+
+.button--danger {
+  background: transparent;
+  border-color: var(--fos-border);
+  color: var(--fos-negative);
+}
+
+.button--danger:hover:not([disabled]) {
+  background: var(--fos-negative-soft);
+  border-color: transparent;
+}
+
+.button--danger-solid {
+  background: var(--fos-negative-solid);
+  color: #ffffff;
+}
+
+.button--danger-solid:hover:not([disabled]) {
+  background: var(--fos-negative);
+}
+
+/* Badges */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 10px;
+  border-radius: var(--fos-radius-full);
+  font-size: var(--fos-text-xs);
+  font-weight: var(--fos-weight-semibold);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.badge--positive {
+  background: var(--fos-positive-soft);
+  color: var(--fos-positive);
+}
+
+.badge--caution {
+  background: var(--fos-caution-soft);
+  color: var(--fos-caution);
+}
+
+.badge--negative {
+  background: var(--fos-negative-soft);
+  color: var(--fos-negative);
+}
+
+.badge--neutral {
+  background: var(--fos-surface-sunken);
+  color: var(--fos-ink-2);
+  box-shadow: inset 0 0 0 1px var(--fos-border);
+}
+
+.badge--info {
+  background: var(--fos-info-soft);
+  color: var(--fos-info);
+}
+
+/* Pairing code */
+
+.user-code {
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: var(--fos-radius-lg);
+  border: 1px dashed var(--fos-border-strong);
+  background: var(--fos-surface-sunken);
+  color: var(--fos-ink);
+  font-size: clamp(1.875rem, 1.2rem + 3vw, 2.75rem);
+  font-weight: var(--fos-weight-semibold);
+  font-feature-settings:
+    'tnum' 1,
+    'zero' 1;
+  letter-spacing: 0.14em;
+  text-align: center;
+  line-height: 1.1;
+  user-select: all;
+}
+
+/* Skeleton */
+
+.sk-line {
+  position: relative;
+  display: block;
+  width: 70%;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--fos-surface-sunken);
+  overflow: hidden;
+}
+
+.sk-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+  animation: fos-shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sk-line::after {
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.05), transparent);
+  }
+}
+
+@keyframes fos-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-line::after {
+    display: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* Shared inline text bits */
+
+.muted {
+  color: var(--fos-ink-3);
+}
+
+.masked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 7px;
+  border-radius: var(--fos-radius-full);
+  background: var(--fos-surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--fos-border);
+  color: var(--fos-ink-3);
+  font-size: var(--fos-text-xs);
+  font-weight: var(--fos-weight-medium);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.masked .icon {
+  color: var(--fos-ink-3);
+  opacity: 0.85;
+}
+
+.inline-note {
+  margin: 0;
+  padding: 10px var(--fos-space-3);
+  border-radius: var(--fos-radius-md);
+  border-left: 3px solid currentcolor;
+  font-size: var(--fos-text-sm);
+  line-height: var(--fos-leading-snug);
+}
+
+.inline-note--caution {
+  background: var(--fos-caution-soft);
+  color: var(--fos-caution);
+}
+
+.inline-note--negative {
+  background: var(--fos-negative-soft);
+  color: var(--fos-negative);
+}
+
+.inline-note--positive {
+  background: var(--fos-positive-soft);
+  color: var(--fos-positive);
+}
+
+.inline-note--info {
+  background: var(--fos-info-soft);
+  color: var(--fos-info);
+}
+
+/* Hairlines carry the structure, so raise their contrast when the reader asks for more. */
+@media (prefers-contrast: more) {
+  .button,
+  .badge,
+  .masked {
+    border-color: currentcolor;
+  }
+
+  .badge--neutral,
+  .masked {
+    box-shadow: inset 0 0 0 1px currentcolor;
+  }
+}
+
+@media (width <= 26rem) {
+  .button {
+    width: 100%;
+  }
+}

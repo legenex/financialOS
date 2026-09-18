@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "FinancialOS New Tab",
+  "short_name": "FinancialOS",
+  "description": "A calm, view-only glance at your FinancialOS plan on each new tab. Amounts stay hidden unless you allow them.",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "options_page": "options.html",
+  "incognito": "not_allowed",
+  "permissions": ["storage"],
+  "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  },
+  "externally_connectable": {
+    "ids": []
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1QiNwosJd3W8tuHN1BxDGm56nk6c2+9XWzHPQrclp8PdTcjOgn5sxSjfU6EiGWIu9NdSSWaFKA7I3Rub0rasNnB1jaUKqxq4/1CMhDfQW3yoLUsR3Ea0jfhkC+qEZjeUn7DoRA3vDI8O80tCA8qiHdcPqfdL2OYACfGQO7m0B82SHY/7d9A2MPaSjeQ2QL+EtRnqjExIFeSfTNto5h8rFAIpqdW3aLkpvQBqv3BRbl97iDloxEFXZVuhjwcpPcy6A56O8XHSqNbnhnhqApvTmmv+yUbQwCMJmeakc9f360qnBQ6p5ABVeAvzue1OoDEUTeqIlMpf0I5frVI0Jvot3wIDAQAB"
+}

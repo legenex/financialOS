@@ -1,0 +1,23 @@
+{
+  "environment": "production",
+  "listen": { "host": "0.0.0.0", "port": 3000 },
+  "canonicalOrigin": "https://finance.example.test:8443",
+  "allowedOrigins": ["https://finance.example.test:8443", "http://localhost:3180"],
+  "trustedProxyCidrs": [],
+  "rpName": "FinancialOS",
+  "webDistDir": "/app/apps/web/dist",
+  "extensionPackagePath": "/app/extension/financialos-extension.zip",
+  "allowedExtensionIds": [],
+  "keyringPath": "/run/secrets/keyring.json",
+  "sessionPepperPath": "/run/secrets/session-pepper",
+  "bootstrapHashPath": "/run/secrets/bootstrap-secret-hash",
+  "database": {
+    "url": "postgres://fos_app@db:5432/financialos",
+    "role": "fos_app",
+    "passwordFile": "/run/secrets/db-password"
+  },
+  "documentsDir": "/data/documents",
+  "logLevel": "info",
+  "publicBaseForOAuthCallbacks": "https://finance.example.test:8443",
+  "bodyLimitBytes": 1048576
+}

@@ -1,0 +1,362 @@
+/*
+ * FinancialOS design tokens.
+ *
+ * Single source of truth for colour, type, spacing, radius, shadow, motion, z-index and layout.
+ * apps/web exposes these to Tailwind through `@theme inline` (see apps/web/src/styles/app.css), and the
+ * extension can import this file on its own. All tokens are CSS custom properties prefixed `--fos-`.
+ *
+ * Themes: light is the default on :root. Dark applies when the OS prefers dark and the owner has not forced
+ * light, or when `data-theme="dark"` is set on <html>. The owner's override lives in localStorage
+ * (`fos-theme`, theme preference only, never data).
+ *
+ * Text colours below were checked for WCAG AA (4.5:1) against the surfaces they are used on.
+ *
+ * Chart categorical palette (validated with the dataviz six-checks validator, OKLab ΔE×100):
+ *   light on #ffffff  teal #00897a · amber #c47a0a · blue #3f6fd8 · rose #d0527a · violet #8166d6 · green #5f9a1e
+ *     adjacent: all pass (worst CVD 11.4, normal 19.4); contrast ≥ 3:1 for all six.
+ *   dark on #161817   teal #1f9e90 · amber #c07a14 · blue #5a88e4 · rose #be4556 · violet #8e78e0 · green #6e9c30
+ *     adjacent: all pass (worst CVD 13.7, normal 20.3); contrast ≥ 3:1 for all six.
+ *   Rings (Donut) wrap slot N back to slot 1, so the Donut caps at five slots plus a neutral "Other". The light
+ *   teal↔rose wrap sits in the CVD floor band (6.6), so the Donut always ships its secondary encoding:
+ *   2px surface gaps, a legend with values, and a table view.
+ */
+
+@layer base {
+  :root {
+    color-scheme: light;
+
+    /* Neutrals (warm stone) */
+    --fos-bg: #f7f7f5;
+    --fos-surface: #ffffff;
+    --fos-surface-sunken: #f2f2ef;
+    --fos-surface-hover: #f4f4f1;
+    --fos-surface-active: #ebeae6;
+    --fos-border: #e4e3de;
+    --fos-border-strong: #d2d0c9;
+    --fos-ink: #161615;
+    --fos-ink-2: #4d4c48;
+    --fos-ink-3: #6b6a65;
+    --fos-ink-inverse: #ffffff;
+
+    /* Accent: deep teal */
+    --fos-accent: #0e6b62;
+    --fos-accent-hover: #0b5c54;
+    --fos-accent-active: #094d46;
+    --fos-accent-soft: #e3f1ee;
+    --fos-accent-ink: #0a564f;
+    --fos-on-accent: #ffffff;
+
+    /* Semantic (muted) */
+    --fos-positive: #237a3b;
+    --fos-positive-soft: #e6f3ea;
+    --fos-positive-solid: #2f8a47;
+    --fos-caution: #8a5a00;
+    --fos-caution-soft: #fbf1dc;
+    --fos-caution-solid: #c98a1b;
+    --fos-negative: #b4322c;
+    --fos-negative-soft: #fbeae8;
+    --fos-negative-solid: #c8423b;
+    --fos-info: #2b5fad;
+    --fos-info-soft: #e8f0fb;
+    --fos-info-solid: #3f6fd8;
+
+    --fos-focus: #0e6b62;
+    --fos-focus-halo: rgb(14 107 98 / 0.18);
+    --fos-overlay: rgb(22 22 21 / 0.38);
+    --fos-cover: #f7f7f5;
+
+    /* Elevation: hairlines first, shadows very subtle */
+    --fos-shadow-1: 0 1px 2px rgb(22 22 21 / 0.04);
+    --fos-shadow-2: 0 1px 2px rgb(22 22 21 / 0.04), 0 6px 20px rgb(22 22 21 / 0.06);
+    --fos-shadow-3: 0 2px 8px rgb(22 22 21 / 0.06), 0 20px 56px rgb(22 22 21 / 0.16);
+
+    /* Charts */
+    --fos-chart-surface: #ffffff;
+    --fos-chart-1: #00897a;
+    --fos-chart-2: #c47a0a;
+    --fos-chart-3: #3f6fd8;
+    --fos-chart-4: #d0527a;
+    --fos-chart-5: #8166d6;
+    --fos-chart-6: #5f9a1e;
+    --fos-chart-other: #c9c7c0;
+    --fos-chart-muted: #b9b7b0;
+    --fos-chart-wash: rgb(0 137 122 / 0.1);
+    --fos-chart-grid: #ecebe7;
+    --fos-chart-axis: #d2d0c9;
+    --fos-chart-label: #6b6a65;
+
+    /* Typography */
+    --fos-font-sans: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    --fos-font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --fos-font-features: 'cv11' 1, 'ss01' 0;
+    --fos-figure-features: 'tnum' 1, 'cv11' 1;
+    --fos-text-2xs: 0.6875rem; /* 11px */
+    --fos-text-xs: 0.75rem; /* 12px */
+    --fos-text-sm: 0.8125rem; /* 13px */
+    --fos-text-base: 0.875rem; /* 14px */
+    --fos-text-md: 0.9375rem; /* 15px */
+    --fos-text-lg: 1.0625rem; /* 17px */
+    --fos-text-xl: 1.25rem; /* 20px */
+    --fos-text-2xl: 1.5rem; /* 24px */
+    --fos-text-3xl: 1.875rem; /* 30px */
+    --fos-text-figure: clamp(2rem, 1.6rem + 1.6vw, 2.5rem); /* 32–40px key figures */
+    --fos-leading-tight: 1.2;
+    --fos-leading-snug: 1.35;
+    --fos-leading-normal: 1.5;
+    --fos-weight-regular: 400;
+    --fos-weight-medium: 500;
+    --fos-weight-semibold: 600;
+    --fos-tracking-tight: -0.011em;
+    --fos-tracking-display: -0.022em;
+
+    /* Spacing: 4px scale */
+    --fos-space-0-5: 2px;
+    --fos-space-1: 4px;
+    --fos-space-1-5: 6px;
+    --fos-space-2: 8px;
+    --fos-space-3: 12px;
+    --fos-space-4: 16px;
+    --fos-space-5: 20px;
+    --fos-space-6: 24px;
+    --fos-space-8: 32px;
+    --fos-space-10: 40px;
+    --fos-space-12: 48px;
+    --fos-space-16: 64px;
+
+    /* Radius */
+    --fos-radius-xs: 6px;
+    --fos-radius-sm: 8px;
+    --fos-radius-md: 10px;
+    --fos-radius-lg: 12px;
+    --fos-radius-xl: 16px;
+    --fos-radius-full: 9999px;
+
+    /* Motion */
+    --fos-duration-fast: 120ms;
+    --fos-duration: 160ms;
+    --fos-duration-slow: 220ms;
+    --fos-ease-out: cubic-bezier(0.22, 0.8, 0.26, 1);
+
+    /* Layering */
+    --fos-z-sticky: 20;
+    --fos-z-nav: 30;
+    --fos-z-overlay: 40;
+    --fos-z-modal: 50;
+    --fos-z-popover: 60;
+    --fos-z-toast: 70;
+    --fos-z-cover: 100;
+
+    /* Layout */
+    --fos-content-max: 72rem;
+    --fos-reading-max: 42rem;
+    --fos-sidebar-w: 15.5rem;
+    --fos-topbar-h: 3.5rem;
+    --fos-tabbar-h: 4rem;
+    --fos-touch-min: 44px;
+    --fos-control-h: 2.5rem;
+
+    /* Breakpoints (reference values; media queries use the literal numbers) */
+    --fos-bp-sm: 40rem; /* 640px */
+    --fos-bp-md: 48rem; /* 768px */
+    --fos-bp-lg: 64rem; /* 1024px */
+    --fos-bp-xl: 80rem; /* 1280px */
+  }
+
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --fos-bg: #0e0f0f;
+    --fos-surface: #161817;
+    --fos-surface-sunken: #121413;
+    --fos-surface-hover: #1c1f1e;
+    --fos-surface-active: #242827;
+    --fos-border: #272b29;
+    --fos-border-strong: #383d3a;
+    --fos-ink: #ecedeb;
+    --fos-ink-2: #b6bab6;
+    --fos-ink-3: #8f948f;
+    --fos-ink-inverse: #0e0f0f;
+    --fos-accent: #3cbcab;
+    --fos-accent-hover: #52c8b8;
+    --fos-accent-active: #6ad3c4;
+    --fos-accent-soft: #10302c;
+    --fos-accent-ink: #7fdccf;
+    --fos-on-accent: #04201d;
+    --fos-positive: #62c486;
+    --fos-positive-soft: #10291a;
+    --fos-positive-solid: #3fa866;
+    --fos-caution: #e5b454;
+    --fos-caution-soft: #2e2410;
+    --fos-caution-solid: #d19a2e;
+    --fos-negative: #f0857c;
+    --fos-negative-soft: #341614;
+    --fos-negative-solid: #dc5b52;
+    --fos-info: #82b2f1;
+    --fos-info-soft: #14233a;
+    --fos-info-solid: #5a88e4;
+    --fos-focus: #5fd4c4;
+    --fos-focus-halo: rgb(95 212 196 / 0.22);
+    --fos-overlay: rgb(0 0 0 / 0.6);
+    --fos-cover: #0e0f0f;
+    --fos-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
+    --fos-shadow-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.3);
+    --fos-shadow-3: 0 2px 8px rgb(0 0 0 / 0.4), 0 24px 64px rgb(0 0 0 / 0.5);
+    --fos-chart-surface: #161817;
+    --fos-chart-1: #1f9e90;
+    --fos-chart-2: #c07a14;
+    --fos-chart-3: #5a88e4;
+    --fos-chart-4: #be4556;
+    --fos-chart-5: #8e78e0;
+    --fos-chart-6: #6e9c30;
+    --fos-chart-other: #4b504d;
+    --fos-chart-muted: #5b605d;
+    --fos-chart-wash: rgb(31 158 144 / 0.14);
+    --fos-chart-grid: #232725;
+    --fos-chart-axis: #383d3a;
+    --fos-chart-label: #8f948f;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      color-scheme: dark;
+      --fos-bg: #0e0f0f;
+      --fos-surface: #161817;
+      --fos-surface-sunken: #121413;
+      --fos-surface-hover: #1c1f1e;
+      --fos-surface-active: #242827;
+      --fos-border: #272b29;
+      --fos-border-strong: #383d3a;
+      --fos-ink: #ecedeb;
+      --fos-ink-2: #b6bab6;
+      --fos-ink-3: #8f948f;
+      --fos-ink-inverse: #0e0f0f;
+      --fos-accent: #3cbcab;
+      --fos-accent-hover: #52c8b8;
+      --fos-accent-active: #6ad3c4;
+      --fos-accent-soft: #10302c;
+      --fos-accent-ink: #7fdccf;
+      --fos-on-accent: #04201d;
+      --fos-positive: #62c486;
+      --fos-positive-soft: #10291a;
+      --fos-positive-solid: #3fa866;
+      --fos-caution: #e5b454;
+      --fos-caution-soft: #2e2410;
+      --fos-caution-solid: #d19a2e;
+      --fos-negative: #f0857c;
+      --fos-negative-soft: #341614;
+      --fos-negative-solid: #dc5b52;
+      --fos-info: #82b2f1;
+      --fos-info-soft: #14233a;
+      --fos-info-solid: #5a88e4;
+      --fos-focus: #5fd4c4;
+      --fos-focus-halo: rgb(95 212 196 / 0.22);
+      --fos-overlay: rgb(0 0 0 / 0.6);
+      --fos-cover: #0e0f0f;
+      --fos-shadow-1: 0 1px 2px rgb(0 0 0 / 0.3);
+      --fos-shadow-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.3);
+      --fos-shadow-3: 0 2px 8px rgb(0 0 0 / 0.4), 0 24px 64px rgb(0 0 0 / 0.5);
+      --fos-chart-surface: #161817;
+      --fos-chart-1: #1f9e90;
+      --fos-chart-2: #c07a14;
+      --fos-chart-3: #5a88e4;
+      --fos-chart-4: #be4556;
+      --fos-chart-5: #8e78e0;
+      --fos-chart-6: #6e9c30;
+      --fos-chart-other: #4b504d;
+      --fos-chart-muted: #5b605d;
+      --fos-chart-wash: rgb(31 158 144 / 0.14);
+      --fos-chart-grid: #232725;
+      --fos-chart-axis: #383d3a;
+      --fos-chart-label: #8f948f;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --fos-duration-fast: 0ms;
+      --fos-duration: 0ms;
+      --fos-duration-slow: 0ms;
+    }
+  }
+
+  /* Base styles */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    background: var(--fos-bg);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--fos-bg);
+    color: var(--fos-ink);
+    font-family: var(--fos-font-sans);
+    font-size: var(--fos-text-base);
+    line-height: var(--fos-leading-normal);
+    font-feature-settings: var(--fos-font-features);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: clip;
+  }
+
+  :where(h1, h2, h3, h4) {
+    margin: 0;
+    font-weight: var(--fos-weight-semibold);
+    letter-spacing: var(--fos-tracking-tight);
+    line-height: var(--fos-leading-tight);
+    color: var(--fos-ink);
+  }
+
+  :where(p) {
+    margin: 0;
+  }
+
+  :where(a) {
+    color: var(--fos-accent-ink);
+  }
+
+  :where(button, input, select, textarea) {
+    font: inherit;
+    color: inherit;
+  }
+
+  ::selection {
+    background: var(--fos-accent-soft);
+    color: var(--fos-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--fos-focus);
+    outline-offset: 2px;
+  }
+
+  .fos-num,
+  .fos-figures {
+    font-feature-settings: var(--fos-figure-features);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fos-sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
